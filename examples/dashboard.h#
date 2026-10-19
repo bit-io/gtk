@@ -1,0 +1,130 @@
+use "bit -> gtk" from "gtk"
+
+;; Panel z nowosciami gtk 0.2: HeaderBar, Notebook, Switch, Scale, ProgressBar,
+;; Expander, TextView, Calendar oraz timery `every` / `after`.
+
+fn main() is
+    gtk::init()
+
+    gtk::load_css("
+        .tytul { font-weight: bold; font-size: 15px; }
+        .cicho { opacity: 0.7; }
+    ")
+
+    let win: gtk::Window = gtk::new_window("Panel H# + GTK4", 560, 460)
+
+    let header: gtk::HeaderBar = gtk::new_header_bar()
+    let copy_btn: gtk::Button = gtk::new_icon_button("edit-copy-symbolic")
+    gtk::set_tooltip(copy_btn.handle, "Kopiuj tekst notatki do schowka")
+    header.pack_start(copy_btn.handle)
+    win.set_titlebar(header.handle)
+
+    let tabs: gtk::Notebook = gtk::new_notebook()
+
+    ;; ── zakladka 1: ustawienia ─────────────────────────────────────────────
+    let settings: gtk::Box = gtk::vbox(10)
+    gtk::set_margin(settings.handle, 16)
+
+    let title: gtk::Label = gtk::new_markup_label("<b>Ustawienia</b>")
+    gtk::add_css_class(title.handle, "tytul")
+    settings.append(title.handle)
+
+    let row: gtk::Box = gtk::hbox(8)
+    let sw: gtk::Switch = gtk::new_switch()
+    let sw_label: gtk::Label = gtk::new_label("Tryb nocny: wylaczony")
+    row.append(sw.handle)
+    row.append(sw_label.handle)
+    settings.append(row.handle)
+
+    let volume: gtk::Scale = gtk::new_scale(gtk::orientation_horizontal(), 0.0, 100.0, 1.0)
+    volume.set_digits(0)
+    volume.set_value(30.0)
+    gtk::set_expand(volume.handle, true, false)
+    let progress: gtk::ProgressBar = gtk::new_progress_bar()
+    progress.set_show_text(true)
+    progress.set_fraction(0.3)
+    progress.set_text("Glosnosc 30%")
+    settings.append(volume.handle)
+    settings.append(progress.handle)
+
+    let more: gtk::Expander = gtk::new_expander("Wiecej")
+    let more_label: gtk::Label = gtk::new_label("Tu moglyby byc zaawansowane opcje.")
+    gtk::add_css_class(more_label.handle, "cicho")
+    more.set_child(more_label.handle)
+    settings.append(more.handle)
+
+    tabs.append(settings.handle, "Ustawienia")
+
+    ;; ── zakladka 2: notatka ────────────────────────────────────────────────
+    let notes: gtk::Box = gtk::vbox(8)
+    gtk::set_margin(notes.handle, 16)
+    let editor: gtk::TextView = gtk::new_text_view()
+    editor.set_wrap(gtk::wrap_word())
+    editor.set_text("Pierwsza notatka")
+    let scroll: gtk::ScrolledWindow = gtk::new_scrolled_window()
+    scroll.set_child(editor.handle)
+    scroll.set_min_height(160)
+    gtk::set_expand(scroll.handle, true, true)
+    let counter: gtk::Label = gtk::new_label("Znakow: 16")
+    notes.append(scroll.handle)
+    notes.append(counter.handle)
+    tabs.append(notes.handle, "Notatka")
+
+    ;; ── zakladka 3: kalendarz + timer ──────────────────────────────────────
+    let cal_box: gtk::Box = gtk::vbox(8)
+    gtk::set_margin(cal_box.handle, 16)
+    let cal: gtk::Calendar = gtk::new_calendar()
+    let date_label: gtk::Label = gtk::new_label("Data: " + cal.date_string())
+    let spinner: gtk::Spinner = gtk::new_spinner()
+    spinner.start()
+    let clock: gtk::Label = gtk::new_label("Uplynelo: 0 s")
+    cal_box.append(cal.handle)
+    cal_box.append(date_label.handle)
+    cal_box.append(spinner.handle)
+    cal_box.append(clock.handle)
+    tabs.append(cal_box.handle, "Kalendarz")
+
+    win.set_child(tabs.handle)
+
+    let app: gtk::App = gtk::new_app()
+
+    app.on_switch(sw, |on: bool| is
+        if on is sw_label.set_text("Tryb nocny: wlaczony")
+        else is sw_label.set_text("Tryb nocny: wylaczony") end
+    end)
+
+    app.on_scale_change(volume, |v: f64| is
+        progress.set_fraction(v / 100.0)
+        progress.set_text("Glosnosc " + to_string(v) + "%")
+    end)
+
+    app.on_text_change(editor, |text: string| is
+        counter.set_text("Znakow: " + to_string(editor.char_count()))
+    end)
+
+    app.on_date_change(cal, |y: int, m: int, d: int| is
+        date_label.set_text("Data: " + cal.date_string())
+    end)
+
+    app.on_page_change(tabs, |page: int| is
+        win.set_title("Panel H# — zakladka " + to_string(page + 1))
+    end)
+
+    app.on_click(copy_btn, || is
+        gtk::clipboard_set_text(editor.text())
+    end)
+
+    let mut seconds: int = 0
+    app.every(1000, || is
+        seconds += 1
+        clock.set_text("Uplynelo: " + to_string(seconds) + " s")
+    end)
+
+    app.after(5000, || is
+        gtk::show_alert(win, "Minelo 5 sekund", "To komunikat z timera `app.after`.")
+    end)
+
+    win.present()
+    app.on_window_close(win, || is app.quit() end)
+    app.run()
+end
