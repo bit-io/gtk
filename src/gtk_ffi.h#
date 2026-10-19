@@ -85,6 +85,7 @@ extern static [c, "gtk4"] is
     fn gtk_separator_new(orientation: int) -> int
     fn gtk_frame_new(label: string) -> int
     fn gtk_frame_set_label(frame: int, label: string)
+    fn gtk_frame_set_child(frame: int, child: int)       ;; uzywane przez `Frame::set_child` — wczesniej brakowalo deklaracji
     fn gtk_scrolled_window_new() -> int
     fn gtk_scrolled_window_set_child(scrolled: int, child: int)
     fn gtk_text_view_new() -> int
@@ -235,6 +236,340 @@ end
 extern static [c, "gobject-2.0"] is
     fn g_object_ref(obj: int) -> int
     fn g_object_unref(obj: int)
+end
+
+;; ══════════════════════════════════════════════════════════════════════════════
+;; ── Rozszerzenie 0.2 ─────────────────────────────────────────────────────────
+;; Wszystko ponizej to dalej zwykle `extern static [c, "..."]` — zero C.
+;; Konwencje: wskazniki = `int`, `gboolean` = `int` (0/1), `double` = `f64`,
+;; wyliczenia GTK = `int`.
+;; ══════════════════════════════════════════════════════════════════════════════
+
+;; ── GtkWindow — dodatki ───────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_window_close(window: int)
+    fn gtk_window_set_titlebar(window: int, titlebar: int)
+    fn gtk_window_get_title(window: int) -> string
+    fn gtk_window_is_active(window: int) -> int
+    fn gtk_window_is_maximized(window: int) -> int
+    fn gtk_window_is_fullscreen(window: int) -> int
+    fn gtk_window_unmaximize(window: int)
+    fn gtk_window_set_transient_for(window: int, parent: int)
+    fn gtk_window_set_hide_on_close(window: int, setting: int)
+    fn gtk_window_set_icon_name(window: int, name: string)
+    fn gtk_window_set_default_widget(window: int, widget: int)
+end
+
+;; ── GtkWidget — dodatki ───────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_widget_set_tooltip_text(widget: int, text: string)
+    fn gtk_widget_get_tooltip_text(widget: int) -> string
+    fn gtk_widget_set_opacity(widget: int, opacity: f64)
+    fn gtk_widget_get_opacity(widget: int) -> f64
+    fn gtk_widget_get_width(widget: int) -> int
+    fn gtk_widget_get_height(widget: int) -> int
+    fn gtk_widget_get_parent(widget: int) -> int
+    fn gtk_widget_get_first_child(widget: int) -> int
+    fn gtk_widget_get_next_sibling(widget: int) -> int
+    fn gtk_widget_set_name(widget: int, name: string)
+    fn gtk_widget_has_css_class(widget: int, css_class: string) -> int
+    fn gtk_widget_set_cursor_from_name(widget: int, name: string)
+    fn gtk_widget_set_focusable(widget: int, focusable: int)
+    fn gtk_widget_has_focus(widget: int) -> int
+    fn gtk_widget_get_sensitive(widget: int) -> int
+    fn gtk_widget_get_visible(widget: int) -> int
+    fn gtk_widget_set_can_target(widget: int, can_target: int)
+    fn gtk_widget_set_overflow(widget: int, overflow: int)      ;; 0 = visible, 1 = hidden
+    fn gtk_widget_queue_draw(widget: int)
+end
+
+;; ── GtkButton / GtkToggleButton / GtkLinkButton ───────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_button_get_label(button: int) -> string
+    fn gtk_button_new_from_icon_name(icon_name: string) -> int
+    fn gtk_button_set_icon_name(button: int, icon_name: string)
+    fn gtk_button_set_has_frame(button: int, has_frame: int)
+    fn gtk_toggle_button_new_with_label(label: string) -> int
+    fn gtk_toggle_button_get_active(toggle: int) -> int
+    fn gtk_toggle_button_set_active(toggle: int, active: int)
+    fn gtk_toggle_button_set_group(toggle: int, group_leader: int)
+    fn gtk_link_button_new_with_label(uri: string, label: string) -> int
+    fn gtk_link_button_get_uri(link: int) -> string
+    fn gtk_link_button_set_uri(link: int, uri: string)
+end
+
+;; ── GtkLabel — dodatki ────────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_label_get_text(label: int) -> string
+    fn gtk_label_set_markup(label: int, markup: string)
+    fn gtk_label_set_selectable(label: int, selectable: int)
+    fn gtk_label_set_ellipsize(label: int, mode: int)           ;; 0 none 1 start 2 middle 3 end
+    fn gtk_label_set_max_width_chars(label: int, n_chars: int)
+    fn gtk_label_set_justify(label: int, justification: int)    ;; 0 left 1 right 2 center 3 fill
+    fn gtk_label_set_lines(label: int, lines: int)
+end
+
+;; ── GtkEntry / GtkPasswordEntry / GtkSearchEntry / GtkEditable — dodatki ──────
+
+extern static [c, "gtk4"] is
+    fn gtk_entry_set_visibility(entry: int, visible: int)
+    fn gtk_entry_set_max_length(entry: int, max_length: int)
+    fn gtk_entry_get_placeholder_text(entry: int) -> string
+    fn gtk_password_entry_new() -> int
+    fn gtk_password_entry_set_show_peek_icon(entry: int, show_peek_icon: int)
+    fn gtk_search_entry_new() -> int
+    fn gtk_editable_set_editable(editable: int, is_editable: int)
+    fn gtk_editable_get_editable(editable: int) -> int
+    fn gtk_editable_select_region(editable: int, start_pos: int, end_pos: int)
+    fn gtk_editable_set_position(editable: int, position: int)
+    fn gtk_editable_get_position(editable: int) -> int
+    fn gtk_editable_set_width_chars(editable: int, n_chars: int)
+end
+
+;; ── GtkSwitch ─────────────────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_switch_new() -> int
+    fn gtk_switch_get_active(sw: int) -> int
+    fn gtk_switch_set_active(sw: int, is_active: int)
+end
+
+;; ── GtkScale / GtkRange ───────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_scale_new_with_range(orientation: int, min: f64, max: f64, step: f64) -> int
+    fn gtk_scale_set_draw_value(scale: int, draw_value: int)
+    fn gtk_scale_set_digits(scale: int, digits: int)
+    fn gtk_scale_set_value_pos(scale: int, pos: int)            ;; 0 left 1 right 2 top 3 bottom
+    fn gtk_scale_add_mark(scale: int, value: f64, position: int, markup: string)
+    fn gtk_scale_clear_marks(scale: int)
+    fn gtk_range_get_value(range: int) -> f64
+    fn gtk_range_set_value(range: int, value: f64)
+    fn gtk_range_set_range(range: int, min: f64, max: f64)
+    fn gtk_range_set_increments(range: int, step: f64, page: f64)
+end
+
+;; ── GtkProgressBar / GtkLevelBar / GtkSpinner — dodatki ───────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_progress_bar_get_fraction(bar: int) -> f64
+    fn gtk_progress_bar_set_text(bar: int, text: string)
+    fn gtk_progress_bar_set_show_text(bar: int, show_text: int)
+    fn gtk_progress_bar_pulse(bar: int)
+    fn gtk_level_bar_new_for_interval(min_value: f64, max_value: f64) -> int
+    fn gtk_level_bar_get_value(bar: int) -> f64
+    fn gtk_level_bar_set_value(bar: int, value: f64)
+    fn gtk_spinner_new() -> int
+    fn gtk_spinner_start(spinner: int)
+    fn gtk_spinner_stop(spinner: int)
+    fn gtk_spinner_get_spinning(spinner: int) -> int
+end
+
+;; ── GtkImage / GtkPicture — dodatki ───────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_image_new_from_icon_name(icon_name: string) -> int
+    fn gtk_image_set_from_file(image: int, path: string)
+    fn gtk_image_set_from_icon_name(image: int, icon_name: string)
+    fn gtk_image_set_pixel_size(image: int, pixel_size: int)
+    fn gtk_image_clear(image: int)
+    fn gtk_picture_new_for_filename(path: string) -> int
+    fn gtk_picture_set_filename(picture: int, path: string)
+    fn gtk_picture_set_can_shrink(picture: int, can_shrink: int)
+    fn gtk_picture_set_content_fit(picture: int, content_fit: int)   ;; GTK >= 4.8: 0 fill 1 contain 2 cover 3 scale-down
+end
+
+;; ── GtkTextView / GtkTextBuffer ───────────────────────────────────────────────
+;; `GtkTextIter` to struktura C (80 B) przekazywana przez wskaznik — alokujemy
+;; ja `mem::alloc` w `gtk.h#` i podajemy jako `int`.
+
+extern static [c, "gtk4"] is
+    fn gtk_text_view_get_buffer(view: int) -> int
+    fn gtk_text_view_set_editable(view: int, setting: int)
+    fn gtk_text_view_set_wrap_mode(view: int, wrap_mode: int)   ;; 0 none 1 char 2 word 3 word-char
+    fn gtk_text_view_set_monospace(view: int, monospace: int)
+    fn gtk_text_view_set_cursor_visible(view: int, setting: int)
+    fn gtk_text_buffer_set_text(buffer: int, text: string, len: int)
+    fn gtk_text_buffer_insert_at_cursor(buffer: int, text: string, len: int)
+    fn gtk_text_buffer_get_start_iter(buffer: int, iter: int)
+    fn gtk_text_buffer_get_end_iter(buffer: int, iter: int)
+    fn gtk_text_buffer_get_text(buffer: int, start: int, end_iter: int, include_hidden: int) -> string
+    fn gtk_text_buffer_get_char_count(buffer: int) -> int
+    fn gtk_text_buffer_get_line_count(buffer: int) -> int
+    fn gtk_text_buffer_get_modified(buffer: int) -> int
+    fn gtk_text_buffer_set_modified(buffer: int, setting: int)
+end
+
+;; ── GtkScrolledWindow — dodatki ───────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_scrolled_window_set_policy(scrolled: int, hscrollbar_policy: int, vscrollbar_policy: int)   ;; 0 always 1 automatic 2 never 3 external
+    fn gtk_scrolled_window_set_min_content_width(scrolled: int, width: int)
+    fn gtk_scrolled_window_set_min_content_height(scrolled: int, height: int)
+    fn gtk_scrolled_window_set_max_content_height(scrolled: int, height: int)
+    fn gtk_scrolled_window_set_propagate_natural_height(scrolled: int, propagate: int)
+end
+
+;; ── GtkBox / GtkGrid — dodatki ────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_box_prepend(box_: int, child: int)
+    fn gtk_box_reorder_child_after(box_: int, child: int, sibling: int)
+    fn gtk_grid_remove(grid: int, child: int)
+    fn gtk_grid_set_row_homogeneous(grid: int, homogeneous: int)
+    fn gtk_grid_set_column_homogeneous(grid: int, homogeneous: int)
+end
+
+;; ── GtkStack — dodatki ────────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_stack_add_named(stack: int, child: int, name: string) -> int
+    fn gtk_stack_remove(stack: int, child: int)
+    fn gtk_stack_get_visible_child(stack: int) -> int
+    fn gtk_stack_set_transition_type(stack: int, transition: int)
+    fn gtk_stack_set_transition_duration(stack: int, duration_ms: int)
+end
+
+;; ── GtkListBox — dodatki ──────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_list_box_select_row(list_box: int, row: int)
+    fn gtk_list_box_unselect_all(list_box: int)
+    fn gtk_list_box_get_row_at_index(list_box: int, index: int) -> int
+    fn gtk_list_box_insert(list_box: int, child: int, position: int)
+    fn gtk_list_box_prepend(list_box: int, child: int)
+    fn gtk_list_box_set_activate_on_single_click(list_box: int, single: int)
+end
+
+;; ── GtkDropDown / GtkStringList — dodatki ─────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_drop_down_set_enable_search(dropdown: int, enable_search: int)
+    fn gtk_string_list_get_string(list: int, position: int) -> string
+end
+
+extern static [c, "gio-2.0"] is
+    fn g_list_model_get_n_items(list: int) -> int
+end
+
+;; ── GtkNotebook ───────────────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_notebook_new() -> int
+    fn gtk_notebook_append_page(notebook: int, child: int, tab_label: int) -> int
+    fn gtk_notebook_remove_page(notebook: int, page_num: int)
+    fn gtk_notebook_get_current_page(notebook: int) -> int
+    fn gtk_notebook_set_current_page(notebook: int, page_num: int)
+    fn gtk_notebook_get_n_pages(notebook: int) -> int
+    fn gtk_notebook_set_tab_pos(notebook: int, pos: int)         ;; 0 left 1 right 2 top 3 bottom
+    fn gtk_notebook_set_scrollable(notebook: int, scrollable: int)
+end
+
+;; ── GtkPaned ──────────────────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_paned_new(orientation: int) -> int
+    fn gtk_paned_set_start_child(paned: int, child: int)
+    fn gtk_paned_set_end_child(paned: int, child: int)
+    fn gtk_paned_get_position(paned: int) -> int
+    fn gtk_paned_set_position(paned: int, position: int)
+    fn gtk_paned_set_wide_handle(paned: int, wide: int)
+end
+
+;; ── GtkRevealer / GtkExpander ─────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_revealer_new() -> int
+    fn gtk_revealer_set_child(revealer: int, child: int)
+    fn gtk_revealer_set_reveal_child(revealer: int, reveal_child: int)
+    fn gtk_revealer_get_reveal_child(revealer: int) -> int
+    fn gtk_revealer_set_transition_type(revealer: int, transition: int)
+    fn gtk_revealer_set_transition_duration(revealer: int, duration_ms: int)
+    fn gtk_expander_new(label: string) -> int
+    fn gtk_expander_set_child(expander: int, child: int)
+    fn gtk_expander_set_label(expander: int, label: string)
+    fn gtk_expander_set_expanded(expander: int, expanded: int)
+    fn gtk_expander_get_expanded(expander: int) -> int
+end
+
+;; ── GtkHeaderBar / GtkActionBar ───────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_header_bar_new() -> int
+    fn gtk_header_bar_pack_start(bar: int, child: int)
+    fn gtk_header_bar_pack_end(bar: int, child: int)
+    fn gtk_header_bar_set_title_widget(bar: int, title_widget: int)
+    fn gtk_header_bar_set_show_title_buttons(bar: int, setting: int)
+    fn gtk_action_bar_new() -> int
+    fn gtk_action_bar_pack_start(bar: int, child: int)
+    fn gtk_action_bar_pack_end(bar: int, child: int)
+    fn gtk_action_bar_set_center_widget(bar: int, center_widget: int)
+end
+
+;; ── GtkFlowBox ────────────────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_flow_box_new() -> int
+    fn gtk_flow_box_append(flow_box: int, child: int)
+    fn gtk_flow_box_remove(flow_box: int, child: int)
+    fn gtk_flow_box_set_max_children_per_line(flow_box: int, n_children: int)
+    fn gtk_flow_box_set_min_children_per_line(flow_box: int, n_children: int)
+    fn gtk_flow_box_set_homogeneous(flow_box: int, homogeneous: int)
+    fn gtk_flow_box_set_row_spacing(flow_box: int, spacing: int)
+    fn gtk_flow_box_set_column_spacing(flow_box: int, spacing: int)
+    fn gtk_flow_box_set_selection_mode(flow_box: int, mode: int)
+end
+
+;; ── GtkCalendar + GDateTime ───────────────────────────────────────────────────
+;; `gtk_calendar_get_date` zwraca GDateTime* (transfer full) — `gtk.h#` zawsze
+;; zwalnia go przez `g_date_time_unref`.
+
+extern static [c, "gtk4"] is
+    fn gtk_calendar_new() -> int
+    fn gtk_calendar_get_date(calendar: int) -> int
+    fn gtk_calendar_mark_day(calendar: int, day: int)
+    fn gtk_calendar_clear_marks(calendar: int)
+end
+
+extern static [c, "glib-2.0"] is
+    fn g_date_time_get_year(datetime: int) -> int
+    fn g_date_time_get_month(datetime: int) -> int
+    fn g_date_time_get_day_of_month(datetime: int) -> int
+    fn g_date_time_unref(datetime: int)
+end
+
+;; ── GtkMenuButton / GtkPopover — dodatki ──────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_menu_button_set_icon_name(menu_button: int, icon_name: string)
+    fn gtk_popover_set_autohide(popover: int, autohide: int)
+    fn gtk_popover_set_has_arrow(popover: int, has_arrow: int)
+end
+
+;; ── GdkClipboard (zapis tekstu; odczyt jest asynchroniczny = callback C) ──────
+
+extern static [c, "gtk4"] is
+    fn gdk_display_get_clipboard(display: int) -> int
+    fn gdk_clipboard_set_text(clipboard: int, text: string)
+end
+
+;; ── GtkSettings ───────────────────────────────────────────────────────────────
+;; (brak `g_object_set` — jest wariadyczny; motywy/ciemny tryb ustawiaj przez CSS
+;; albo zmienne srodowiskowe `GTK_THEME=Adwaita:dark`.)
+
+;; ── GLib — czas i spanie (timery w `App` bez sygnalow) ────────────────────────
+
+extern static [c, "glib-2.0"] is
+    fn g_get_monotonic_time() -> int         ;; mikrosekundy od startu (monotoniczny zegar)
+    fn g_usleep(microseconds: int)
+    ;; Bufor na `GtkTextIter` (2 x 80 B) — GLib-owy odpowiednik malloc/free,
+    ;; bez zadnego konfliktu z wbudowanym `malloc` kompilatora H#.
+    fn g_malloc0(n_bytes: int) -> int
+    fn g_free(mem: int)
 end
 
 ;; UWAGA: celowo NIE MA tu żadnego `g_signal_connect` / własnego kodu C.
