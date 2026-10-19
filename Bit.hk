@@ -1,17 +1,59 @@
 [package]
 -> name        => gtk
 -> version     => 0.1.0
--> description => Bindingi GTK4 dla H# — w 100% H#, natywne FFI do libgtk-4 przez extern static [c]
--> author      => Bytes Developers
+-> description => GTK4 bindings for H# — 100% H#, native FFI to libgtk-4 (extern static [c]), polling-based events
+-> authors     => ["Bit Developers"]
 -> license     => MIT
--> repository  => github.com/Bytes-Repository/gtk
+-> lang        => h#
+-> repository  => https://github.com/bit-io/gtk
+
+[edition]
+-> edition   => 2026
+-> toolchain => 0.9
+
+[layout]
+-> src       => src
+-> lib-entry => src/gtk.h#
+-> examples  => examples
 
 [build]
--> lang   => h#
--> entry  => src/gtk.h#
--> output => build/libgtk_hsharp
+-> link => static
 
-[deps]
--> gtk4               => static   ;; GTK 4.x (widgety) — nazwa modułu pkg-config
--> glib-2.0           => static   ;; GMainContext / pętla zdarzeń
--> gobject-2.0        => static   ;; g_object_ref / g_object_unref
+[lib]
+-> output => hlib
+
+[system-dependencies]
+-> gtk4
+--> version => >=4.10
+--> pkg-config => gtk4
+--> apt => libgtk-4-dev
+--> dnf => gtk4-devel
+--> pacman => gtk4
+--> apk => gtk4.0-dev
+--> zypper => gtk4-devel
+-> glib
+--> pkg-config => glib-2.0
+--> apt => libglib2.0-dev
+--> dnf => glib2-devel
+--> pacman => glib2
+--> apk => glib-dev
+--> zypper => glib2-devel
+-> gobject
+--> pkg-config => gobject-2.0
+--> apt => libglib2.0-dev
+--> dnf => glib2-devel
+--> pacman => glib2
+--> apk => glib-dev
+--> zypper => glib2-devel
+-> gio
+--> pkg-config => gio-2.0
+--> apt => libglib2.0-dev
+--> dnf => glib2-devel
+--> pacman => glib2
+--> apk => glib-dev
+--> zypper => glib2-devel
+
+[commands]
+-> check
+--> run => bit check
+--> description => Type-check src/gtk.h#
