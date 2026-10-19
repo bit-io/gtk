@@ -7,7 +7,7 @@ i `libgobject-2.0`, plus wygodna warstwa wysokopoziomowa (struktury,
 `impl`, obsługa zdarzeń) napisana czystym H# na wierzchu tych deklaracji.
 
 ```hsharp
-use "bytes -> gtk" from "gtk"
+use "bit -> gtk" from "gtk"
 
 fn main() is
     gtk::init()
@@ -41,14 +41,14 @@ sudo pacman -S gtk4 glib2 pkgconf
 Następnie w swoim projekcie H#:
 
 ```bash
-bytes add gtk
+bit add gtk
 ```
 
-lub ręcznie, dopisując do `deps` w swoim `<projekt>.hk`:
+lub ręcznie, dopisując do `[dependencies]` w swoim `Bit.hk`:
 
 ```
-[deps]
--> gtk => bytes
+[dependencies]
+-> gtk => newest
 ```
 
 ## Budowanie tej biblioteki samodzielnie
@@ -68,13 +68,13 @@ dystrybucji — pakiety `-dev`/`-devel` zwykle dają tylko `.so`), linker i tak
 poprawnie dowiąże się dynamicznie do `.so`, bo `pkg-config` bez `--static`
 i tak zwraca poprawne `-lgtk-4 -lglib-2.0 -lgobject-2.0`. Blok jest
 zadeklarowany jako `static`, zgodnie z życzeniem — jeśli w Twoim systemie
-są dostępne statyczne `.a` dla GTK4/GLib, `bytes`/`h#` użyje ich automatycznie.
+są dostępne statyczne `.a` dla GTK4/GLib, `bit`/`h#` użyje ich automatycznie.
 
 ## Struktura
 
 ```
 gtk/
-  gtk.hk                       manifest pakietu (format bytes)
+  Bit.hk                       manifest pakietu (format bit: [layout], [lib], [system-dependencies])
   README.md                    ten plik
   LICENSE                      MIT
   src/
@@ -84,17 +84,35 @@ gtk/
     hello_window.h#            minimalne okno + przycisk "Wyjdź"
     counter_and_form.h#        licznik kliknięć, checkbox, pole tekstowe
     widgets_showcase.h#        DropDown, SpinButton, ListBox, Stack, CSS, hover, AlertDialog
+    dashboard.h#               HeaderBar, Notebook, Switch, Scale, TextView, Calendar, timery
 ```
 
 ## Pokryte widgety
 
 | Kategoria       | Widgety |
 |-----------------|---------|
-| Okna/kontenery  | `Window`, `Box`, `Grid`, `Frame`, `ScrolledWindow`, `CenterBox`, `Overlay` |
-| Podstawowe      | `Button`, `Label`, `Entry`, `CheckButton`, `Image`, `Separator`, `TextView`, `ProgressBar` |
-| Wybór           | `DropDown`, `SpinButton`, `ListBox` |
-| Nawigacja       | `Stack` + `StackSwitcher`, `MenuButton` + `Popover` |
+| Okna/kontenery  | `Window`, `Box`, `Grid`, `Frame`, `ScrolledWindow`, `CenterBox`, `Overlay`, `Paned`, `Revealer`, `Expander`, `FlowBox`, `HeaderBar`, `ActionBar` |
+| Podstawowe      | `Button`, `ToggleButton`, `LinkButton`, `Label`, `Entry`, `PasswordEntry`, `SearchEntry`, `CheckButton`, `Switch`, `Image`, `Picture`, `Separator`, `TextView` |
+| Wartości        | `ProgressBar`, `LevelBar`, `Spinner`, `Scale`, `SpinButton` |
+| Wybór           | `DropDown`, `ListBox`, `Calendar` |
+| Nawigacja       | `Stack` + `StackSwitcher`, `Notebook`, `MenuButton` + `Popover` |
 | Dialogi         | `show_alert` (`GtkAlertDialog`, fire-and-forget) |
+| Inne            | `clipboard_set_text`, `load_css`, timery `App::every` / `after` |
+
+### Nowości w 0.2
+
+- nowe widgety z tabeli wyżej; nowe metody m.in. `Window::close/set_titlebar/is_active`,
+  `Box::clear/prepend`, `ListBox::select_index/clear`, `DropDown::selected_text/count`,
+  `TextView::text/set_text/append`, `Label::set_markup`, wspólne `gtk::set_tooltip`,
+  `set_opacity`, `set_cursor`, `widget_width/height`;
+- nowe zdarzenia `App`: `on_switch`, `on_scale_change`, `on_page_change`, `on_toggle_button`,
+  `on_text_change`, `on_date_change`, `on_expand`, `on_reveal`, `on_paned_move`,
+  `on_focus`, `on_press`, `on_resize`, `on_window_active`;
+- timery: `app.every(ms, cb)`, `app.after(ms, cb)`, `app.cancel(id)`;
+- `app.unwatch(handle)` — wywołaj przed zniszczeniem obserwowanego widgetu;
+- poprawka: `Frame::set_child` wołał niezadeklarowane `gtk_frame_set_child`;
+- poprawka: wyniki `gint` (np. `-1`) są teraz poprawnie rozszerzane o znak;
+- `use "bytes -> gtk"` → `use "bit -> gtk"` (parser H# odrzuca `bytes`).
 
 Każdy widget to struktura H# z polem `handle: int` (surowy wskaźnik GTK —
 tak samo jak `malloc`/`free` w rdzeniu H# reprezentują pamięć jako `int`)
@@ -175,6 +193,16 @@ wołający `app.quit()` (patrz `examples/hello_window.h#`).
   `char**`) nie jest używany — zamiast tego budujemy `GtkStringList`
   przez pojedyncze wywołania `gtk_string_list_append`, żeby nie polegać na
   marshalingu tablic NULL-terminated z H# do C.
+
+- **Wyciek przy odczycie `TextView`.** `gtk_text_buffer_get_text` zwraca świeżo
+  zaalokowany `char*`; bez surowego wskaźnika nie da się go zwolnić (`g_free`).
+  Każde `TextView::text()` i każde wywołanie `on_text_change` gubi kopię tekstu.
+- **Timery** mają rozdzielczość ok. 4 ms; przy aktywnym timerze pętla nie blokuje się
+  (niewielkie, stałe zużycie CPU). Bez timerów pętla czeka na zdarzenia.
+- **Brak odczytu schowka i `g_object_set`** (callback asynchroniczny / funkcja wariadyczna).
+  Ciemny motyw: zmienna środowiskowa `GTK_THEME=Adwaita:dark` albo CSS.
+- **Biblioteka nie była jeszcze uruchamiana z prawdziwym GTK** — składnia i spójność
+  deklaracji FFI sprawdzone parserem H#, ale bez kompilacji LLVM.
 
 ## Licencja
 
