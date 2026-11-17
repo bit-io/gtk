@@ -572,12 +572,121 @@ extern static [c, "glib-2.0"] is
     fn g_free(mem: int)
 end
 
-;; UWAGA: celowo NIE MA tu żadnego `g_signal_connect` / własnego kodu C.
-;; Ta biblioteka jest w 100% H# — zero linii C. Zdarzenia (kliknięcia,
-;; zmiana stanu checkboxa, zmiana tekstu w polu) są wykrywane przez
-;; odpytywanie (polling) prawdziwego stanu widgetu GTK w pętli `App::run`
-;; (patrz `gtk.h#`), a nie przez sygnały GObject — bo podpięcie sygnału
-;; wymaga przekazania C-owego wskaźnika funkcji, którego H# (na dziś:
-;; `TypeExpr::Fn` w FFI mapuje się na nieprzezroczysty `void*`, bez
-;; generowania trampoliny) nie potrafi wygenerować z domknięcia H#.
-;; Zobacz sekcję "Jak to działa" w README.md po pełne wyjaśnienie kompromisu.
+;; Sygnaly GObject (0.4): kompilator H# zamienia nazwe zwyklej funkcji uzyta jako wartosc
+;; na prawdziwy wskaznik C, wiec callbacki sa zwyklymi funkcjami `fn nazwa(a: int, b: int) -> int`
+;; z gtk.h# (bez domkniec i bez zadnego kodu C). Callbacki tylko wrzucaja zdarzenie do
+;; kolejki GLib (GQueue); domkniecia uzytkownika sa wolane z `App::poll`, w glownym watku.
+;; Wszystkie callbacki zwracaja `int` (0), bo sygnaly typu `close-request` oczekuja gboolean.
+
+;; ── Rozszerzenie 0.3 — potrzebne aplikacjom „prawdziwym” (np. HackerOS Welcome) ──
+
+extern static [c, "gtk4"] is
+    fn gtk_button_set_child(button: int, child: int)
+    fn gtk_label_set_width_chars(label: int, n_chars: int)
+    fn gtk_widget_get_root(widget: int) -> int
+    fn gtk_search_entry_set_placeholder_text(entry: int, text: string)
+end
+
+extern static [c, "gio-2.0"] is
+    ;; (uri, GAppLaunchContext* = NULL, GError** = NULL) -> gboolean
+    fn g_app_info_launch_default_for_uri(uri: string, context: int, error: int) -> int
+end
+
+;; ── Rozszerzenie 0.4 — sygnaly, kolejka zdarzen, GtkFileDialog, libadwaita ────
+
+extern static [c, "gobject-2.0"] is
+    ;; (instance, "signal", GCallback, user_data, GClosureNotify = NULL, GConnectFlags = 0) -> handler id
+    fn g_signal_connect_data(instance: int, detailed_signal: string, handler: int, data: int, destroy: int, flags: int) -> int
+    fn g_signal_handler_disconnect(instance: int, handler_id: int)
+end
+
+extern static [c, "glib-2.0"] is
+    fn g_queue_new() -> int
+    fn g_queue_push_tail(queue: int, data: int)
+    fn g_queue_pop_head(queue: int) -> int
+    fn g_queue_is_empty(queue: int) -> int
+end
+
+extern static [c, "gio-2.0"] is
+    fn g_file_new_for_path(path: string) -> int
+    fn g_file_get_path(file: int) -> string
+end
+
+;; GtkFileDialog (GTK >= 4.10): wersje asynchroniczne dostaja callback
+;; GAsyncReadyCallback(source, result, user_data); `*_finish` wolamy pozniej z `App::poll`.
+extern static [c, "gtk4"] is
+    fn gtk_file_dialog_new() -> int
+    fn gtk_file_dialog_set_title(dialog: int, title: string)
+    fn gtk_file_dialog_set_accept_label(dialog: int, label: string)
+    fn gtk_file_dialog_set_initial_name(dialog: int, name: string)
+    fn gtk_file_dialog_set_initial_folder(dialog: int, folder: int)
+    fn gtk_file_dialog_save(dialog: int, parent: int, cancellable: int, cb: int, data: int)
+    fn gtk_file_dialog_save_finish(dialog: int, result: int, error: int) -> int
+    fn gtk_file_dialog_open(dialog: int, parent: int, cancellable: int, cb: int, data: int)
+    fn gtk_file_dialog_open_finish(dialog: int, result: int, error: int) -> int
+    fn gtk_file_dialog_select_folder(dialog: int, parent: int, cancellable: int, cb: int, data: int)
+    fn gtk_file_dialog_select_folder_finish(dialog: int, result: int, error: int) -> int
+end
+
+;; libadwaita (>= 1.5: AdwAboutDialog, AdwToolbarView, AdwSwitchRow)
+extern static [c, "adwaita-1"] is
+    fn adw_init()
+    fn adw_style_manager_get_default() -> int
+    fn adw_style_manager_set_color_scheme(manager: int, scheme: int)
+    fn adw_window_new() -> int
+    fn adw_window_set_content(window: int, content: int)
+    fn adw_toolbar_view_new() -> int
+    fn adw_toolbar_view_add_top_bar(view: int, bar: int)
+    fn adw_toolbar_view_add_bottom_bar(view: int, bar: int)
+    fn adw_toolbar_view_set_content(view: int, content: int)
+    fn adw_header_bar_new() -> int
+    fn adw_header_bar_set_title_widget(bar: int, widget: int)
+    fn adw_header_bar_pack_start(bar: int, widget: int)
+    fn adw_header_bar_pack_end(bar: int, widget: int)
+    fn adw_window_title_new(title: string, subtitle: string) -> int
+    fn adw_window_title_set_title(title: int, text: string)
+    fn adw_window_title_set_subtitle(title: int, text: string)
+    fn adw_toast_overlay_new() -> int
+    fn adw_toast_overlay_set_child(overlay: int, child: int)
+    fn adw_toast_overlay_add_toast(overlay: int, toast: int)
+    fn adw_toast_new(title: string) -> int
+    fn adw_toast_set_timeout(toast: int, seconds: int)
+    fn adw_clamp_new() -> int
+    fn adw_clamp_set_child(clamp: int, child: int)
+    fn adw_clamp_set_maximum_size(clamp: int, size: int)
+    fn adw_preferences_group_new() -> int
+    fn adw_preferences_group_set_title(group: int, title: string)
+    fn adw_preferences_group_set_description(group: int, description: string)
+    fn adw_preferences_group_add(group: int, child: int)
+    fn adw_action_row_new() -> int
+    fn adw_preferences_row_set_title(row: int, title: string)
+    fn adw_action_row_set_subtitle(row: int, subtitle: string)
+    fn adw_action_row_add_prefix(row: int, widget: int)
+    fn adw_action_row_add_suffix(row: int, widget: int)
+    fn adw_action_row_set_activatable_widget(row: int, widget: int)
+    fn adw_switch_row_new() -> int
+    fn adw_switch_row_get_active(row: int) -> int
+    fn adw_switch_row_set_active(row: int, active: int)
+    fn adw_combo_row_new() -> int
+    fn adw_combo_row_set_model(row: int, model: int)
+    fn adw_combo_row_get_selected(row: int) -> int
+    fn adw_combo_row_set_selected(row: int, position: int)
+    fn adw_status_page_new() -> int
+    fn adw_status_page_set_icon_name(page: int, icon: string)
+    fn adw_status_page_set_title(page: int, title: string)
+    fn adw_status_page_set_description(page: int, description: string)
+    fn adw_status_page_set_child(page: int, child: int)
+    fn adw_about_dialog_new() -> int
+    fn adw_about_dialog_set_application_name(dialog: int, name: string)
+    fn adw_about_dialog_set_application_icon(dialog: int, icon: string)
+    fn adw_about_dialog_set_developer_name(dialog: int, name: string)
+    fn adw_about_dialog_set_version(dialog: int, version: string)
+    fn adw_about_dialog_set_comments(dialog: int, comments: string)
+    fn adw_about_dialog_set_website(dialog: int, website: string)
+    fn adw_about_dialog_set_issue_url(dialog: int, url: string)
+    fn adw_about_dialog_set_support_url(dialog: int, url: string)
+    fn adw_about_dialog_set_copyright(dialog: int, copyright: string)
+    fn adw_about_dialog_set_license_type(dialog: int, license: int)
+    fn adw_dialog_present(dialog: int, parent: int)
+    fn adw_dialog_close(dialog: int) -> int
+end
