@@ -1,7 +1,8 @@
 mod gtk_ffi
 use "std -> strings" from "strings"
+use "std -> env" from "env"
 
-;; gtk 0.2 — bindingi GTK4 dla H# w 100% H# (zero C).
+;; gtk 0.4 — bindingi GTK4 + libadwaita dla H# w 100% H# (zero C).
 ;; Warstwa wysokopoziomowa nad `gtk_ffi.h#`: struktury widgetow, `impl`, `App`.
 
 ;; ── Orientacja (GtkOrientation) ───────────────────────────────────────────────
@@ -81,7 +82,7 @@ end
 ;; ── Inicjalizacja ──────────────────────────────────────────────────────────────
 
 ;; Wywolaj raz, przed stworzeniem jakiegokolwiek widgetu.
-pub fn init() is
+pub fn init_gtk() is
     gtk_ffi::gtk_init()
 end
 
@@ -574,6 +575,11 @@ end
 ;; ── Window ────────────────────────────────────────────────────────────────────
 
 impl Window is
+    ;; (0.4) Zawartosc okna `AdwWindow` (zamiast `set_child`).
+    fn set_content(self, content: int) is
+        gtk_ffi::adw_window_set_content(self.handle, content)
+    end
+
     fn set_child(self, child: int) is
         gtk_ffi::gtk_window_set_child(self.handle, child)
     end
@@ -667,6 +673,13 @@ impl Box is
         gtk_ffi::gtk_box_append(self.handle, child)
     end
 
+    ;; To samo co `append`. Osobna nazwa, bo kompilator H# uznaje kazde `x.append(..)` w domknieciu za mutacje
+    ;; zmiennej `x` (heurystyka dla tablic) i przechwytuje ja przez referencje — dla uchwytow GTK konczylo
+    ;; sie to wiszaca referencja po powrocie z funkcji. `add_child` takiej heurystyki nie wyzwala.
+    fn add_child(self, child: int) is
+        gtk_ffi::gtk_box_append(self.handle, child)
+    end
+
     fn prepend(self, child: int) is
         gtk_ffi::gtk_box_prepend(self.handle, child)
     end
@@ -702,6 +715,11 @@ end
 ;; ── Button / ToggleButton / LinkButton ────────────────────────────────────────
 
 impl Button is
+    ;; (0.3) Dowolny widget jako zawartosc przycisku (np. Box z ikona i tekstem).
+    fn set_child(self, child: int) is
+        gtk_ffi::gtk_button_set_child(self.handle, child)
+    end
+
     fn set_label(self, label: string) is
         gtk_ffi::gtk_button_set_label(self.handle, label)
     end
@@ -765,6 +783,11 @@ end
 ;; ── Label ─────────────────────────────────────────────────────────────────────
 
 impl Label is
+    ;; (0.3) Minimalna szerokosc w znakach (np. kolumna kluczy w tabeli).
+    fn set_width_chars(self, n_chars: int) is
+        gtk_ffi::gtk_label_set_width_chars(self.handle, n_chars)
+    end
+
     fn set_text(self, text: string) is
         gtk_ffi::gtk_label_set_text(self.handle, text)
     end
@@ -893,6 +916,11 @@ impl SearchEntry is
 
     fn set_text(self, text: string) is
         gtk_ffi::gtk_editable_set_text(self.handle, text)
+    end
+
+    ;; (0.3) Tekst podpowiedzi w pustym polu (GTK >= 4.10).
+    fn set_placeholder(self, text: string) is
+        gtk_ffi::gtk_search_entry_set_placeholder_text(self.handle, text)
     end
 
     fn as_entry(self) -> Entry is
@@ -1301,6 +1329,16 @@ end
 ;; ── FlowBox ───────────────────────────────────────────────────────────────────
 
 impl FlowBox is
+    ;; (0.3) Usuwa wszystkie dzieci.
+    fn clear(self) is
+        let mut c: int = gtk_ffi::gtk_widget_get_first_child(self.handle)
+        while c != 0 is
+            let next: int = gtk_ffi::gtk_widget_get_next_sibling(c)
+            gtk_ffi::gtk_flow_box_remove(self.handle, c)
+            c = next
+        end
+    end
+
     fn append(self, child: int) is
         gtk_ffi::gtk_flow_box_append(self.handle, child)
     end
@@ -1662,6 +1700,46 @@ end
 ;; odczytem wyboru uzytkownika, to (tak jak `close-request`) wymaga
 ;; asynchronicznego C-owego callbacku i jest poza zakresem biblioteki w
 ;; 100% H# — patrz README.md, sekcja "Znane ograniczenia".
+;; (0.3) Otwiera adres (http/https/file/mailto...) w domyslnej aplikacji systemu
+;; przez `g_app_info_launch_default_for_uri` (synchronicznie, bez callbacku).
+;; Zwraca `true`, gdy system przyjal zadanie.
+pub fn open_uri(uri: string) -> bool is
+    return gtk_ffi::g_app_info_launch_default_for_uri(uri, 0, 0) != 0
+end
+
+;; (0.3) Ciemny motyw GTK bez libadwaita: ustawia GTK_THEME, jesli uzytkownik
+;; nie wybral wlasnego. Wolac PRZED `gtk::init_gtk()`.
+pub fn prefer_dark() is
+    if env::get("GTK_THEME") == "" is
+        env::set("GTK_THEME", "Adwaita:dark")
+    end
+end
+
+;; (0.3) Dodatkowa referencja na widget (g_object_ref) — widget zostaje poprawna pamiecia
+;; nawet po usunieciu z drzewa. Uzyj, gdy zalozony timer moze dotknac widgetu, ktory
+;; uzytkownik w miedzyczasie zniszczyl; po zakonczeniu zadania wywolaj `release`.
+pub fn keep(handle: int) is
+    gtk_ffi::g_object_ref(handle)
+end
+
+pub fn release(handle: int) is
+    gtk_ffi::g_object_unref(handle)
+end
+
+;; (0.3) Nawigacja po drzewie widgetow (0 = brak).
+pub fn first_child(handle: int) -> int is
+    return gtk_ffi::gtk_widget_get_first_child(handle)
+end
+
+pub fn next_sibling(handle: int) -> int is
+    return gtk_ffi::gtk_widget_get_next_sibling(handle)
+end
+
+;; (0.3) Widget -> okno-korzen (handle `GtkRoot`), 0 gdy widget nie jest jeszcze w oknie.
+pub fn widget_root(handle: int) -> int is
+    return gtk_ffi::gtk_widget_get_root(handle)
+end
+
 pub fn show_alert(parent: Window, message: string, detail: string) is
     let safe_message: string = strings::replace_all(message, "%", "%%")
     let dialog: int = gtk_ffi::gtk_alert_dialog_new(safe_message)
@@ -1778,7 +1856,43 @@ struct App is
     pub tmr_active:   [int]
     pub tmr_cb:       [fn() -> void]
 
+    ;; (0.4) prawdziwe sygnaly GObject: callbacki wrzucaja (rodzaj, widget) do kolejki GLib
+    pub sig_q:       int
+    pub btn_sig:     [int]
+    pub submit_sig:  [int]
+
+    ;; (0.4) asynchroniczne okna wyboru pliku (GtkFileDialog)
+    pub file_q:      int
+    pub file_dlg:    [int]
+    pub file_kind:   [int]
+    pub file_cb:     [fn(string) -> void]
+
     pub running:      bool
+end
+
+;; ── Callbacki C (0.4) — zwykle funkcje, ich nazwa uzyta jako wartosc to wskaznik C ──
+;; Wolane przez GLib w glownym watku. Tylko zapisuja zdarzenie w kolejce; zwracaja 0
+;; (gboolean FALSE — dla `close-request` oznacza „nie blokuj domyslnej obslugi”).
+
+fn cb_clicked(widget: int, q: int) -> int is
+    gtk_ffi::g_queue_push_tail(q, 1)
+    gtk_ffi::g_queue_push_tail(q, widget)
+    return 0
+end
+
+fn cb_activate(widget: int, q: int) -> int is
+    gtk_ffi::g_queue_push_tail(q, 2)
+    gtk_ffi::g_queue_push_tail(q, widget)
+    return 0
+end
+
+;; GAsyncReadyCallback(source_object, GAsyncResult*, user_data) — result trzymamy (ref)
+;; do czasu wywolania `*_finish` w `App::poll`.
+fn cb_file_done(source: int, result: int, q: int) -> int is
+    gtk_ffi::g_object_ref(result)
+    gtk_ffi::g_queue_push_tail(q, source)
+    gtk_ffi::g_queue_push_tail(q, result)
+    return 0
 end
 
 pub fn new_app() -> App is
@@ -1807,6 +1921,8 @@ pub fn new_app() -> App is
         tview_widget: [], tview_prev: [], tview_cb: [],
         cal_widget: [], cal_prev: [], cal_cb: [],
         tmr_interval: [], tmr_next: [], tmr_repeat: [], tmr_active: [], tmr_cb: [],
+        sig_q: gtk_ffi::g_queue_new(), btn_sig: [], submit_sig: [],
+        file_q: gtk_ffi::g_queue_new(), file_dlg: [], file_kind: [], file_cb: [],
         running:      true,
     }
 end
@@ -1820,11 +1936,13 @@ end
 
 impl App is
     ;; Rejestruje domkniecie wolane przy wykryciu klikniecia przycisku
-    ;; (zbocze wcisniecie→puszczenie na fladze stanu GTK_STATE_FLAG_ACTIVE).
+    ;; (od 0.4: prawdziwy sygnal GObject "clicked", dostarczany przez kolejke w `poll`).
     fn on_click(self, button: Button, cb: fn() -> void) is
         self.btn_widget.push(button.handle)
         self.btn_prev.push(0)
         self.btn_cb.push(cb)
+        ;; (0.4) prawdziwy sygnal "clicked" (takze klawiatura: spacja / Enter)
+        self.btn_sig.push(gtk_ffi::g_signal_connect_data(button.handle, "clicked", fn_addr(cb_clicked), self.sig_q, 0, 0))
     end
 
     ;; Jak `on_click`, ale wolane w chwili WCISNIECIA (zbocze puszczenie→wcisniecie),
@@ -1893,6 +2011,8 @@ impl App is
         self.submit_widget.push(entry.handle)
         self.submit_prev.push(0)
         self.submit_cb.push(cb)
+        ;; (0.4) prawdziwy sygnal "activate" (Enter w polu)
+        self.submit_sig.push(gtk_ffi::g_signal_connect_data(entry.handle, "activate", fn_addr(cb_activate), self.sig_q, 0, 0))
     end
 
     ;; Rejestruje domkniecie wolane przy kazdej zmianie zaznaczonego wiersza
@@ -2052,6 +2172,17 @@ impl App is
         return n
     end
 
+    ;; (0.3) `unwatch` dla `handle` i WSZYSTKICH jego potomkow. Wolaj przed
+    ;; `Box::clear` / usunieciem calego poddrzewa, w ktorym rejestrowano zdarzenia.
+    fn unwatch_tree(self, handle: int) is
+        self.unwatch(handle)
+        let mut c: int = gtk_ffi::gtk_widget_get_first_child(handle)
+        while c != 0 is
+            self.unwatch_tree(c)
+            c = gtk_ffi::gtk_widget_get_next_sibling(c)
+        end
+    end
+
     ;; Przestaje obserwowac widget `handle` we WSZYSTKICH rodzajach zdarzen.
     ;; Wywolaj to PRZED zniszczeniem/usunieciem widgetu, ktory byl obserwowany —
     ;; odpytywanie zniszczonego widgetu bylo by odczytem zwolnionej pamieci.
@@ -2061,6 +2192,10 @@ impl App is
         while i < self.btn_widget.len() is
             if self.btn_widget[i] == handle is
                 self.btn_widget[i] = 0
+                if self.btn_sig[i] != 0 is
+                    gtk_ffi::g_signal_handler_disconnect(handle, self.btn_sig[i])
+                    self.btn_sig[i] = 0
+                end
             end
             i += 1
         end
@@ -2117,6 +2252,10 @@ impl App is
         while i < self.submit_widget.len() is
             if self.submit_widget[i] == handle is
                 self.submit_widget[i] = 0
+                if self.submit_sig[i] != 0 is
+                    gtk_ffi::g_signal_handler_disconnect(handle, self.submit_sig[i])
+                    self.submit_sig[i] = 0
+                end
             end
             i += 1
         end
@@ -2221,6 +2360,112 @@ impl App is
         end
     end
 
+    ;; (0.4) Odbiera zdarzenia z sygnalow GObject (kolejka `sig_q`) i woła domkniecia.
+    fn drain_signals(self) is
+        let mut guard: int = 0
+        while c_int(gtk_ffi::g_queue_is_empty(self.sig_q)) == 0 && guard < 4096 is
+            guard += 1
+            let kind: int = gtk_ffi::g_queue_pop_head(self.sig_q)
+            let w: int = gtk_ffi::g_queue_pop_head(self.sig_q)
+            let mut i: int = 0
+            if kind == 1 is
+                while i < self.btn_widget.len() is
+                    if self.btn_widget[i] == w is
+                        let cb = self.btn_cb[i]
+                        cb()
+                        i = self.btn_widget.len()
+                    end
+                    i += 1
+                end
+            elsif kind == 2 is
+                while i < self.submit_widget.len() is
+                    if self.submit_widget[i] == w is
+                        let cb = self.submit_cb[i]
+                        cb()
+                        i = self.submit_widget.len()
+                    end
+                    i += 1
+                end
+            end
+        end
+    end
+
+    ;; (0.4) Konczy zakonczone okna wyboru pliku i woła ich domkniecia ("" = anulowano).
+    fn drain_files(self) is
+        let mut guard: int = 0
+        while c_int(gtk_ffi::g_queue_is_empty(self.file_q)) == 0 && guard < 64 is
+            guard += 1
+            let dlg: int = gtk_ffi::g_queue_pop_head(self.file_q)
+            let result: int = gtk_ffi::g_queue_pop_head(self.file_q)
+            let mut idx: int = -1
+            let mut i: int = 0
+            while i < self.file_dlg.len() is
+                if self.file_dlg[i] == dlg is idx = i end
+                i += 1
+            end
+            let mut path: string = ""
+            let mut file: int = 0
+            if idx >= 0 is
+                let kind: int = self.file_kind[idx]
+                if kind == 0 is
+                    file = gtk_ffi::gtk_file_dialog_save_finish(dlg, result, 0)
+                elsif kind == 1 is
+                    file = gtk_ffi::gtk_file_dialog_open_finish(dlg, result, 0)
+                else is
+                    file = gtk_ffi::gtk_file_dialog_select_folder_finish(dlg, result, 0)
+                end
+            end
+            if file != 0 is
+                path = gtk_ffi::g_file_get_path(file)
+                gtk_ffi::g_object_unref(file)
+            end
+            gtk_ffi::g_object_unref(result)
+            gtk_ffi::g_object_unref(dlg)
+            if idx >= 0 is
+                self.file_dlg[idx] = 0
+                let cb = self.file_cb[idx]
+                cb(path)
+            end
+        end
+    end
+
+    fn file_dialog(self, parent: Window, kind: int, title: string, accept: string, initial_name: string, initial_folder: string, cb: fn(string) -> void) is
+        let dlg: int = gtk_ffi::gtk_file_dialog_new()
+        gtk_ffi::gtk_file_dialog_set_title(dlg, title)
+        if accept != "" is gtk_ffi::gtk_file_dialog_set_accept_label(dlg, accept) end
+        if initial_name != "" is gtk_ffi::gtk_file_dialog_set_initial_name(dlg, initial_name) end
+        if initial_folder != "" is
+            let f: int = gtk_ffi::g_file_new_for_path(initial_folder)
+            gtk_ffi::gtk_file_dialog_set_initial_folder(dlg, f)
+            gtk_ffi::g_object_unref(f)
+        end
+        self.file_dlg.push(dlg)
+        self.file_kind.push(kind)
+        self.file_cb.push(cb)
+        if kind == 0 is
+            gtk_ffi::gtk_file_dialog_save(dlg, parent.handle, 0, fn_addr(cb_file_done), self.file_q)
+        elsif kind == 1 is
+            gtk_ffi::gtk_file_dialog_open(dlg, parent.handle, 0, fn_addr(cb_file_done), self.file_q)
+        else is
+            gtk_ffi::gtk_file_dialog_select_folder(dlg, parent.handle, 0, fn_addr(cb_file_done), self.file_q)
+        end
+    end
+
+    ;; (0.4) Natywne okno „Zapisz jako”. `cb` dostaje pelna sciezke albo "" (anulowano).
+    fn save_file(self, parent: Window, title: string, initial_name: string, initial_folder: string, cb: fn(string) -> void) is
+        self.file_dialog(parent, 0, title, "Zapisz", initial_name, initial_folder, cb)
+    end
+
+    ;; (0.4) Natywne okno „Otworz plik”.
+    fn open_file(self, parent: Window, title: string, initial_folder: string, cb: fn(string) -> void) is
+        self.file_dialog(parent, 1, title, "Otwórz", "", initial_folder, cb)
+    end
+
+    ;; (0.4) Natywne okno wyboru katalogu.
+    fn select_folder(self, parent: Window, title: string, initial_folder: string, cb: fn(string) -> void) is
+        self.file_dialog(parent, 2, title, "Wybierz", "", initial_folder, cb)
+    end
+
     ;; Zatrzymuje `run()` po zakonczeniu biezacej iteracji. Najprosciej
     ;; podlaczyc to pod `on_click` przycisku "Wyjdz", albo pod
     ;; `on_window_close` (patrz wyzej) dla przyblizenia klikniecia „X”.
@@ -2236,21 +2481,8 @@ impl App is
     fn poll(self) is
         let mut i: int = 0
 
-        i = 0
-        while i < self.btn_widget.len() is
-            let w: int = self.btn_widget[i]
-            if w != 0 is
-                let flags: int = gtk_ffi::gtk_widget_get_state_flags(w)
-                let cur: int = flags & 1
-                let prev: int = self.btn_prev[i]
-                self.btn_prev[i] = cur
-                if prev == 1 && cur == 0 is
-                    let cb = self.btn_cb[i]
-                    cb()
-                end
-            end
-            i += 1
-        end
+        self.drain_signals()
+        self.drain_files()
 
         i = 0
         while i < self.press_widget.len() is
@@ -2355,22 +2587,6 @@ impl App is
                 if cur != prev is
                     let cb = self.focus_cb[i]
                     cb(cur == 1)
-                end
-            end
-            i += 1
-        end
-
-        i = 0
-        while i < self.submit_widget.len() is
-            let w: int = self.submit_widget[i]
-            if w != 0 is
-                let flags: int = gtk_ffi::gtk_widget_get_state_flags(w)
-                let cur: int = if (flags & 16384) != 0 then 1 else 0   ;; GTK_STATE_FLAG_FOCUS_WITHIN
-                let prev: int = self.submit_prev[i]
-                self.submit_prev[i] = cur
-                if edge_high_to_low(prev, cur) is
-                    let cb = self.submit_cb[i]
-                    cb()
                 end
             end
             i += 1
@@ -2627,4 +2843,181 @@ impl App is
             end
         end
     end
+end
+
+;; ═══════════════════════════════════════════════════════════════════════════════
+;; libadwaita (0.4) — wymaga libadwaita >= 1.5. Wszystkie widgety to zwykle GtkWidget*,
+;; wiec pasuja do `append`, `set_child`, `add_css_class` itd. z reszty biblioteki.
+;; ═══════════════════════════════════════════════════════════════════════════════
+
+;; AdwColorScheme
+pub fn color_scheme_default()      -> int is return 0 end
+pub fn color_scheme_force_light()  -> int is return 1 end
+pub fn color_scheme_force_dark()   -> int is return 4 end
+
+;; GtkLicense (do okna „O programie”)
+pub fn license_unknown() -> int is return 0 end
+pub fn license_gpl_3_0() -> int is return 3 end
+pub fn license_mit()     -> int is return 7 end
+
+struct ToolbarView is
+    pub handle: int
+end
+
+struct AdwHeaderBar is
+    pub handle: int
+end
+
+struct WindowTitle is
+    pub handle: int
+end
+
+struct ToastOverlay is
+    pub handle: int
+end
+
+struct Clamp is
+    pub handle: int
+end
+
+struct PrefGroup is
+    pub handle: int
+end
+
+struct ActionRow is
+    pub handle: int
+end
+
+struct StatusPage is
+    pub handle: int
+end
+
+;; Inicjalizacja libadwaita — wolaj PO `init_gtk()`, przed budowaniem okna.
+pub fn init_adw() is
+    gtk_ffi::adw_init()
+end
+
+;; Wymusza ciemny motyw przez AdwStyleManager (zamiast zmiennej GTK_THEME).
+pub fn set_color_scheme(scheme: int) is
+    let m: int = gtk_ffi::adw_style_manager_get_default()
+    gtk_ffi::adw_style_manager_set_color_scheme(m, scheme)
+end
+
+;; Okno AdwWindow (nie ma `set_child` / `set_titlebar` — uzyj `Window::set_content`).
+pub fn new_adw_window(title: string, width: int, height: int) -> Window is
+    let h: int = gtk_ffi::adw_window_new()
+    gtk_ffi::gtk_window_set_title(h, title)
+    gtk_ffi::gtk_window_set_default_size(h, width, height)
+    return Window { handle: h }
+end
+
+pub fn new_toolbar_view() -> ToolbarView is
+    return ToolbarView { handle: gtk_ffi::adw_toolbar_view_new() }
+end
+
+pub fn new_adw_header_bar() -> AdwHeaderBar is
+    return AdwHeaderBar { handle: gtk_ffi::adw_header_bar_new() }
+end
+
+pub fn new_window_title(title: string, subtitle: string) -> WindowTitle is
+    return WindowTitle { handle: gtk_ffi::adw_window_title_new(title, subtitle) }
+end
+
+pub fn new_toast_overlay() -> ToastOverlay is
+    return ToastOverlay { handle: gtk_ffi::adw_toast_overlay_new() }
+end
+
+pub fn new_clamp(max_width: int) -> Clamp is
+    let h: int = gtk_ffi::adw_clamp_new()
+    gtk_ffi::adw_clamp_set_maximum_size(h, max_width)
+    return Clamp { handle: h }
+end
+
+pub fn new_pref_group(title: string, description: string) -> PrefGroup is
+    let h: int = gtk_ffi::adw_preferences_group_new()
+    if title != "" is gtk_ffi::adw_preferences_group_set_title(h, title) end
+    if description != "" is gtk_ffi::adw_preferences_group_set_description(h, description) end
+    return PrefGroup { handle: h }
+end
+
+pub fn new_action_row(title: string, subtitle: string) -> ActionRow is
+    let h: int = gtk_ffi::adw_action_row_new()
+    gtk_ffi::adw_preferences_row_set_title(h, title)
+    if subtitle != "" is gtk_ffi::adw_action_row_set_subtitle(h, subtitle) end
+    return ActionRow { handle: h }
+end
+
+pub fn new_status_page(icon: string, title: string, description: string) -> StatusPage is
+    let h: int = gtk_ffi::adw_status_page_new()
+    if icon != "" is gtk_ffi::adw_status_page_set_icon_name(h, icon) end
+    gtk_ffi::adw_status_page_set_title(h, title)
+    if description != "" is gtk_ffi::adw_status_page_set_description(h, description) end
+    return StatusPage { handle: h }
+end
+
+;; Krotki komunikat „toast” na dole okna (timeout w sekundach; 0 = az do zamkniecia).
+pub fn toast(overlay: ToastOverlay, message: string, timeout_s: int) is
+    let t: int = gtk_ffi::adw_toast_new(message)
+    gtk_ffi::adw_toast_set_timeout(t, timeout_s)
+    gtk_ffi::adw_toast_overlay_add_toast(overlay.handle, t)
+end
+
+;; Natywne okno „O programie” (AdwAboutDialog, libadwaita >= 1.5).
+pub fn show_about_dialog(parent: Window, name: string, icon: string, developer: string,
+                         version: string, comments: string, website: string,
+                         issue_url: string, support_url: string, copyright: string, license: int) is
+    let d: int = gtk_ffi::adw_about_dialog_new()
+    gtk_ffi::adw_about_dialog_set_application_name(d, name)
+    if icon != "" is gtk_ffi::adw_about_dialog_set_application_icon(d, icon) end
+    gtk_ffi::adw_about_dialog_set_developer_name(d, developer)
+    gtk_ffi::adw_about_dialog_set_version(d, version)
+    gtk_ffi::adw_about_dialog_set_comments(d, comments)
+    gtk_ffi::adw_about_dialog_set_website(d, website)
+    gtk_ffi::adw_about_dialog_set_issue_url(d, issue_url)
+    gtk_ffi::adw_about_dialog_set_support_url(d, support_url)
+    gtk_ffi::adw_about_dialog_set_copyright(d, copyright)
+    gtk_ffi::adw_about_dialog_set_license_type(d, license)
+    gtk_ffi::adw_dialog_present(d, parent.handle)
+end
+
+impl ToolbarView is
+    fn add_top_bar(self, bar: int) is gtk_ffi::adw_toolbar_view_add_top_bar(self.handle, bar) end
+    fn add_bottom_bar(self, bar: int) is gtk_ffi::adw_toolbar_view_add_bottom_bar(self.handle, bar) end
+    fn set_content(self, content: int) is gtk_ffi::adw_toolbar_view_set_content(self.handle, content) end
+end
+
+impl AdwHeaderBar is
+    fn set_title_widget(self, w: int) is gtk_ffi::adw_header_bar_set_title_widget(self.handle, w) end
+    fn pack_start(self, w: int) is gtk_ffi::adw_header_bar_pack_start(self.handle, w) end
+    fn pack_end(self, w: int) is gtk_ffi::adw_header_bar_pack_end(self.handle, w) end
+end
+
+impl WindowTitle is
+    fn set_title(self, text: string) is gtk_ffi::adw_window_title_set_title(self.handle, text) end
+    fn set_subtitle(self, text: string) is gtk_ffi::adw_window_title_set_subtitle(self.handle, text) end
+end
+
+impl ToastOverlay is
+    fn set_child(self, child: int) is gtk_ffi::adw_toast_overlay_set_child(self.handle, child) end
+end
+
+impl Clamp is
+    fn set_child(self, child: int) is gtk_ffi::adw_clamp_set_child(self.handle, child) end
+end
+
+impl PrefGroup is
+    fn add(self, row: int) is gtk_ffi::adw_preferences_group_add(self.handle, row) end
+end
+
+impl ActionRow is
+    fn add_prefix(self, w: int) is gtk_ffi::adw_action_row_add_prefix(self.handle, w) end
+    fn add_suffix(self, w: int) is gtk_ffi::adw_action_row_add_suffix(self.handle, w) end
+    fn set_subtitle(self, text: string) is gtk_ffi::adw_action_row_set_subtitle(self.handle, text) end
+    fn set_title(self, text: string) is gtk_ffi::adw_preferences_row_set_title(self.handle, text) end
+    fn set_activatable_widget(self, w: int) is gtk_ffi::adw_action_row_set_activatable_widget(self.handle, w) end
+end
+
+impl StatusPage is
+    fn set_child(self, child: int) is gtk_ffi::adw_status_page_set_child(self.handle, child) end
+    fn set_description(self, text: string) is gtk_ffi::adw_status_page_set_description(self.handle, text) end
 end
