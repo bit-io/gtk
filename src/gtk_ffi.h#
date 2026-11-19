@@ -690,3 +690,71 @@ extern static [c, "adwaita-1"] is
     fn adw_dialog_present(dialog: int, parent: int)
     fn adw_dialog_close(dialog: int) -> int
 end
+
+;; ══════════════════════════════════════════════════════════════════════════════
+;; ── Rozszerzenie 0.5 — libadwaita: widoki, wiersze, banner, dialogi ──────────
+;; Wszystko nadal `extern static [c, "..."]` (zero C). Wymaga libadwaita >= 1.5
+;; (sprawdzone symbol po symbolu z `nm -D libadwaita-1.so.0`).
+;; ══════════════════════════════════════════════════════════════════════════════
+
+extern static [c, "adwaita-1"] is
+    ;; AdwViewStack + AdwViewSwitcher / AdwViewSwitcherBar (nawigacja w naglowku)
+    fn adw_view_stack_new() -> int
+    fn adw_view_stack_add_titled_with_icon(stack: int, child: int, name: string, title: string, icon_name: string) -> int
+    fn adw_view_stack_set_visible_child_name(stack: int, name: string)
+    fn adw_view_stack_get_visible_child_name(stack: int) -> string
+    fn adw_view_switcher_new() -> int
+    fn adw_view_switcher_set_stack(switcher: int, stack: int)
+    fn adw_view_switcher_set_policy(switcher: int, policy: int)     ;; 0 = narrow, 1 = wide
+    fn adw_view_switcher_bar_new() -> int
+    fn adw_view_switcher_bar_set_stack(bar: int, stack: int)
+    fn adw_view_switcher_bar_set_reveal(bar: int, reveal: int)
+
+    ;; Wiersze z polem tekstowym (implementuja GtkEditable: gtk_editable_get_text dziala)
+    fn adw_entry_row_new() -> int
+    fn adw_entry_row_add_prefix(row: int, widget: int)
+    fn adw_entry_row_add_suffix(row: int, widget: int)
+    fn adw_password_entry_row_new() -> int
+
+    ;; AdwExpanderRow
+    fn adw_expander_row_new() -> int
+    fn adw_expander_row_add_row(row: int, child: int)
+    fn adw_expander_row_add_prefix(row: int, widget: int)
+    fn adw_expander_row_add_suffix(row: int, widget: int)
+    fn adw_expander_row_set_subtitle(row: int, subtitle: string)
+    fn adw_expander_row_set_expanded(row: int, expanded: int)
+    fn adw_expander_row_get_expanded(row: int) -> int
+
+    ;; AdwBanner
+    fn adw_banner_new(title: string) -> int
+    fn adw_banner_set_title(banner: int, title: string)
+    fn adw_banner_set_revealed(banner: int, revealed: int)
+    fn adw_banner_set_button_label(banner: int, label: string)
+
+    ;; AdwDialog (adaptacyjne okno dialogowe, libadwaita >= 1.5)
+    fn adw_dialog_new() -> int
+    fn adw_dialog_set_title(dialog: int, title: string)
+    fn adw_dialog_set_child(dialog: int, child: int)
+    fn adw_dialog_set_content_width(dialog: int, width: int)
+    fn adw_dialog_set_content_height(dialog: int, height: int)
+    fn adw_dialog_set_follows_content_size(dialog: int, follows: int)
+
+    ;; AdwButtonContent (ikona + tekst w przycisku)
+    fn adw_button_content_new() -> int
+    fn adw_button_content_set_label(content: int, label: string)
+    fn adw_button_content_set_icon_name(content: int, icon_name: string)
+
+    ;; AdwPreferencesPage / Group / Row — dodatki
+    fn adw_preferences_page_new() -> int
+    fn adw_preferences_page_add(page: int, group: int)
+    fn adw_preferences_group_remove(group: int, child: int)
+    fn adw_preferences_row_set_use_markup(row: int, use_markup: int)
+    fn adw_action_row_set_subtitle_lines(row: int, lines: int)
+    fn adw_action_row_set_icon_name(row: int, icon_name: string)
+    fn adw_toast_set_priority(toast: int, priority: int)             ;; 0 = normal, 1 = high
+end
+
+;; GtkWidget / GtkEditable / GtkListBox — dodatki 0.5
+extern static [c, "gtk4"] is
+    fn gtk_list_box_set_placeholder(list_box: int, placeholder: int)
+end
