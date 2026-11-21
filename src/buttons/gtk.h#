@@ -1,0 +1,192 @@
+struct Button is
+    pub handle: int
+end
+
+pub fn new_button(label: string) -> Button is
+    return Button { handle: gtk_ffi::gtk_button_new_with_label(label) }
+end
+
+;; Przycisk z ikona z aktualnego motywu ikon (np. "document-open-symbolic").
+pub fn new_icon_button(icon_name: string) -> Button is
+    return Button { handle: gtk_ffi::gtk_button_new_from_icon_name(icon_name) }
+end
+
+impl Button is
+    ;; (0.3) Dowolny widget jako zawartosc przycisku (np. Box z ikona i tekstem).
+    fn set_child(self, child: int) is
+        gtk_ffi::gtk_button_set_child(self.handle, child)
+    end
+
+    fn set_label(self, label: string) is
+        gtk_ffi::gtk_button_set_label(self.handle, label)
+    end
+
+    fn label(self) -> string is
+        return gtk_ffi::gtk_button_get_label(self.handle)
+    end
+
+    fn set_icon_name(self, icon_name: string) is
+        gtk_ffi::gtk_button_set_icon_name(self.handle, icon_name)
+    end
+
+    ;; `false` = przycisk bez ramki (plaski), jak w paskach narzedzi.
+    fn set_has_frame(self, has_frame: bool) is
+        gtk_ffi::gtk_button_set_has_frame(self.handle, gtk::b2i(has_frame))
+    end
+
+    ;; Biezacy (natychmiastowy) stan "wcisniety" — czysty odczyt stanu GTK,
+    ;; w 100% wiarygodny. Przydatne np. do animacji "press and hold".
+    fn is_pressed(self) -> bool is
+        let flags: int = gtk_ffi::gtk_widget_get_state_flags(self.handle)
+        return (flags & 1) != 0   ;; GTK_STATE_FLAG_ACTIVE
+    end
+end
+
+;; ── ToggleButton ────────────────────────────────────────────────────────────
+
+struct ToggleButton is
+    pub handle: int
+end
+
+pub fn new_toggle_button(label: string) -> ToggleButton is
+    return ToggleButton { handle: gtk_ffi::gtk_toggle_button_new_with_label(label) }
+end
+
+impl ToggleButton is
+    fn is_active(self) -> bool is
+        return gtk_ffi::gtk_toggle_button_get_active(self.handle) != 0
+    end
+
+    fn set_active(self, active: bool) is
+        gtk_ffi::gtk_toggle_button_set_active(self.handle, gtk::b2i(active))
+    end
+
+    fn set_label(self, label: string) is
+        gtk_ffi::gtk_button_set_label(self.handle, label)
+    end
+
+    ;; Laczy przyciski w grupe „radio” — w grupie aktywny jest tylko jeden.
+    ;; Wywolaj na kazdym przycisku poza pierwszym, podajac pierwszy jako lidera.
+    fn set_group(self, leader: ToggleButton) is
+        gtk_ffi::gtk_toggle_button_set_group(self.handle, leader.handle)
+    end
+
+    ;; Ten sam widget jako `Button` (np. do `app.on_click`).
+    fn as_button(self) -> Button is
+        return Button { handle: self.handle }
+    end
+end
+
+;; ── LinkButton ──────────────────────────────────────────────────────────────
+
+struct LinkButton is
+    pub handle: int
+end
+
+pub fn new_link_button(uri: string, label: string) -> LinkButton is
+    return LinkButton { handle: gtk_ffi::gtk_link_button_new_with_label(uri, label) }
+end
+
+impl LinkButton is
+    fn uri(self) -> string is
+        return gtk_ffi::gtk_link_button_get_uri(self.handle)
+    end
+
+    fn set_uri(self, uri: string) is
+        gtk_ffi::gtk_link_button_set_uri(self.handle, uri)
+    end
+end
+
+;; ── CheckButton ─────────────────────────────────────────────────────────────
+
+struct CheckButton is
+    pub handle: int
+end
+
+pub fn new_check_button(label: string) -> CheckButton is
+    return CheckButton { handle: gtk_ffi::gtk_check_button_new_with_label(label) }
+end
+
+impl CheckButton is
+    fn is_active(self) -> bool is
+        return gtk_ffi::gtk_check_button_get_active(self.handle) != 0
+    end
+
+    fn set_active(self, active: bool) is
+        gtk_ffi::gtk_check_button_set_active(self.handle, gtk::b2i(active))
+    end
+end
+
+;; ── Switch ──────────────────────────────────────────────────────────────────
+
+struct Switch is
+    pub handle: int
+end
+
+pub fn new_switch() -> Switch is
+    return Switch { handle: gtk_ffi::gtk_switch_new() }
+end
+
+impl Switch is
+    fn is_active(self) -> bool is
+        return gtk_ffi::gtk_switch_get_active(self.handle) != 0
+    end
+
+    fn set_active(self, active: bool) is
+        gtk_ffi::gtk_switch_set_active(self.handle, gtk::b2i(active))
+    end
+end
+
+;; ── MenuButton ──────────────────────────────────────────────────────────────
+
+struct MenuButton is
+    pub handle: int
+end
+
+pub fn new_menu_button(label: string) -> MenuButton is
+    let h: int = gtk_ffi::gtk_menu_button_new()
+    gtk_ffi::gtk_menu_button_set_label(h, label)
+    return MenuButton { handle: h }
+end
+
+impl MenuButton is
+    fn set_popover(self, popover: Popover) is
+        gtk_ffi::gtk_menu_button_set_popover(self.handle, popover.handle)
+    end
+
+    fn set_label(self, label: string) is
+        gtk_ffi::gtk_menu_button_set_label(self.handle, label)
+    end
+
+    fn set_icon_name(self, icon_name: string) is
+        gtk_ffi::gtk_menu_button_set_icon_name(self.handle, icon_name)
+    end
+end
+
+;; ── Popover ─────────────────────────────────────────────────────────────────
+
+struct Popover is
+    pub handle: int
+end
+
+pub fn new_popover() -> Popover is
+    return Popover { handle: gtk_ffi::gtk_popover_new() }
+end
+
+impl Popover is
+    fn set_child(self, child: int) is
+        gtk_ffi::gtk_popover_set_child(self.handle, child)
+    end
+
+    fn popup(self) is gtk_ffi::gtk_popover_popup(self.handle) end
+    fn popdown(self) is gtk_ffi::gtk_popover_popdown(self.handle) end
+
+    ;; `false`: popover nie znika sam po kliknieciu poza nim.
+    fn set_autohide(self, autohide: bool) is
+        gtk_ffi::gtk_popover_set_autohide(self.handle, gtk::b2i(autohide))
+    end
+
+    fn set_has_arrow(self, has_arrow: bool) is
+        gtk_ffi::gtk_popover_set_has_arrow(self.handle, gtk::b2i(has_arrow))
+    end
+end
