@@ -1,0 +1,174 @@
+struct DropDown is
+    pub handle: int
+    pub model:  int
+end
+
+;; DropDown zaczyna puste — dodawaj opcje przez `.append(item)`.
+pub fn new_drop_down() -> DropDown is
+    let model: int = gtk_ffi::gtk_string_list_new(0)
+    let h: int = gtk_ffi::gtk_drop_down_new(model, 0)
+    return DropDown { handle: h, model: model }
+end
+
+impl DropDown is
+    fn append(self, item: string) is
+        gtk_ffi::gtk_string_list_append(self.model, item)
+    end
+
+    ;; Usuwa opcje o danym indeksie (0-based).
+    fn remove_at(self, position: int) is
+        gtk_ffi::gtk_string_list_remove(self.model, position)
+    end
+
+    ;; Liczba opcji.
+    fn count(self) -> int is
+        return gtk::c_int(gtk_ffi::g_list_model_get_n_items(self.model))
+    end
+
+    ;; Tekst opcji o indeksie `position`.
+    fn item(self, position: int) -> string is
+        return gtk_ffi::gtk_string_list_get_string(self.model, position)
+    end
+
+    ;; Indeks zaznaczonej opcji (0-based), albo `-1` jesli nic nie wybrano.
+    fn selected(self) -> int is
+        let pos: int = gtk_ffi::gtk_drop_down_get_selected(self.handle)
+        if pos == 4294967295 is return -1 end
+        return pos
+    end
+
+    ;; Tekst zaznaczonej opcji, albo "" jesli nic nie wybrano.
+    fn selected_text(self) -> string is
+        let pos: int = self.selected()
+        if pos < 0 is return "" end
+        return gtk_ffi::gtk_string_list_get_string(self.model, pos)
+    end
+
+    fn set_selected(self, position: int) is
+        gtk_ffi::gtk_drop_down_set_selected(self.handle, position)
+    end
+
+    ;; Pole wyszukiwania w rozwijanej liscie (przydatne przy wielu opcjach).
+    fn set_enable_search(self, enable: bool) is
+        gtk_ffi::gtk_drop_down_set_enable_search(self.handle, gtk::b2i(enable))
+    end
+end
+
+;; ── ListBox ─────────────────────────────────────────────────────────────────
+
+struct ListBox is
+    pub handle: int
+end
+
+pub fn new_list_box() -> ListBox is
+    return ListBox { handle: gtk_ffi::gtk_list_box_new() }
+end
+
+impl ListBox is
+    fn append(self, child: int) is
+        gtk_ffi::gtk_list_box_append(self.handle, child)
+    end
+
+    fn prepend(self, child: int) is
+        gtk_ffi::gtk_list_box_prepend(self.handle, child)
+    end
+
+    ;; Wstawia `child` na pozycji `position` (0-based; -1 = na koniec).
+    fn insert(self, child: int, position: int) is
+        gtk_ffi::gtk_list_box_insert(self.handle, child, position)
+    end
+
+    fn remove(self, child: int) is
+        gtk_ffi::gtk_list_box_remove(self.handle, child)
+    end
+
+    ;; Usuwa wszystkie wiersze.
+    fn clear(self) is
+        let mut row: int = gtk_ffi::gtk_widget_get_first_child(self.handle)
+        while row != 0 is
+            let next: int = gtk_ffi::gtk_widget_get_next_sibling(row)
+            gtk_ffi::gtk_list_box_remove(self.handle, row)
+            row = next
+        end
+    end
+
+    fn set_selection_mode(self, mode: int) is
+        gtk_ffi::gtk_list_box_set_selection_mode(self.handle, mode)
+    end
+
+    ;; `true`: pojedynczy klik aktywuje wiersz (zamiast podwojnego).
+    fn set_activate_on_single_click(self, single: bool) is
+        gtk_ffi::gtk_list_box_set_activate_on_single_click(self.handle, gtk::b2i(single))
+    end
+
+    ;; Indeks zaznaczonego wiersza (0-based), albo `-1` jesli nic nie wybrano.
+    fn selected_index(self) -> int is
+        let row: int = gtk_ffi::gtk_list_box_get_selected_row(self.handle)
+        if row == 0 is return -1 end
+        return gtk::c_int(gtk_ffi::gtk_list_box_row_get_index(row))
+    end
+
+    ;; Zaznacza wiersz o danym indeksie (nic nie robi, gdy go nie ma).
+    fn select_index(self, index: int) is
+        let row: int = gtk_ffi::gtk_list_box_get_row_at_index(self.handle, index)
+        if row != 0 is gtk_ffi::gtk_list_box_select_row(self.handle, row) end
+    end
+
+    fn unselect_all(self) is
+        gtk_ffi::gtk_list_box_unselect_all(self.handle)
+    end
+end
+
+;; ── FlowBox ─────────────────────────────────────────────────────────────────
+
+struct FlowBox is
+    pub handle: int
+end
+
+pub fn new_flow_box() -> FlowBox is
+    return FlowBox { handle: gtk_ffi::gtk_flow_box_new() }
+end
+
+impl FlowBox is
+    ;; (0.3) Usuwa wszystkie dzieci.
+    fn clear(self) is
+        let mut c: int = gtk_ffi::gtk_widget_get_first_child(self.handle)
+        while c != 0 is
+            let next: int = gtk_ffi::gtk_widget_get_next_sibling(c)
+            gtk_ffi::gtk_flow_box_remove(self.handle, c)
+            c = next
+        end
+    end
+
+    fn append(self, child: int) is
+        gtk_ffi::gtk_flow_box_append(self.handle, child)
+    end
+
+    fn remove(self, child: int) is
+        gtk_ffi::gtk_flow_box_remove(self.handle, child)
+    end
+
+    fn set_max_per_line(self, n_children: int) is
+        gtk_ffi::gtk_flow_box_set_max_children_per_line(self.handle, n_children)
+    end
+
+    fn set_min_per_line(self, n_children: int) is
+        gtk_ffi::gtk_flow_box_set_min_children_per_line(self.handle, n_children)
+    end
+
+    fn set_homogeneous(self, homogeneous: bool) is
+        gtk_ffi::gtk_flow_box_set_homogeneous(self.handle, gtk::b2i(homogeneous))
+    end
+
+    fn set_row_spacing(self, spacing: int) is
+        gtk_ffi::gtk_flow_box_set_row_spacing(self.handle, spacing)
+    end
+
+    fn set_column_spacing(self, spacing: int) is
+        gtk_ffi::gtk_flow_box_set_column_spacing(self.handle, spacing)
+    end
+
+    fn set_selection_mode(self, mode: int) is
+        gtk_ffi::gtk_flow_box_set_selection_mode(self.handle, mode)
+    end
+end
