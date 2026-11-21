@@ -1,0 +1,261 @@
+struct Scale is
+    pub handle: int
+end
+
+;; Suwak (poziomy lub pionowy) z zakresem [min, max] i krokiem `step`.
+pub fn new_scale(orientation: int, min: f64, max: f64, step: f64) -> Scale is
+    return Scale { handle: gtk_ffi::gtk_scale_new_with_range(orientation, min, max, step) }
+end
+
+impl Scale is
+    fn value(self) -> f64 is
+        return gtk_ffi::gtk_range_get_value(self.handle)
+    end
+
+    fn set_value(self, value: f64) is
+        gtk_ffi::gtk_range_set_value(self.handle, value)
+    end
+
+    fn set_range(self, min: f64, max: f64) is
+        gtk_ffi::gtk_range_set_range(self.handle, min, max)
+    end
+
+    fn set_increments(self, step: f64, page: f64) is
+        gtk_ffi::gtk_range_set_increments(self.handle, step, page)
+    end
+
+    ;; Czy nad suwakiem ma byc wyswietlana jego liczbowa wartosc.
+    fn set_draw_value(self, draw: bool) is
+        gtk_ffi::gtk_scale_set_draw_value(self.handle, gtk::b2i(draw))
+    end
+
+    fn set_digits(self, digits: int) is
+        gtk_ffi::gtk_scale_set_digits(self.handle, digits)
+    end
+
+    ;; Patrz `gtk::position_*()`.
+    fn set_value_pos(self, pos: int) is
+        gtk_ffi::gtk_scale_set_value_pos(self.handle, pos)
+    end
+
+    ;; Znacznik na osi (markup moze byc pusty: "").
+    fn add_mark(self, value: f64, pos: int, markup: string) is
+        gtk_ffi::gtk_scale_add_mark(self.handle, value, pos, markup)
+    end
+
+    fn clear_marks(self) is
+        gtk_ffi::gtk_scale_clear_marks(self.handle)
+    end
+end
+
+;; ── SpinButton ──────────────────────────────────────────────────────────────
+
+struct SpinButton is
+    pub handle: int
+end
+
+pub fn new_spin_button(min: f64, max: f64, step: f64) -> SpinButton is
+    return SpinButton { handle: gtk_ffi::gtk_spin_button_new_with_range(min, max, step) }
+end
+
+impl SpinButton is
+    fn value(self) -> f64 is
+        return gtk_ffi::gtk_spin_button_get_value(self.handle)
+    end
+
+    fn set_value(self, value: f64) is
+        gtk_ffi::gtk_spin_button_set_value(self.handle, value)
+    end
+
+    fn set_digits(self, digits: int) is
+        gtk_ffi::gtk_spin_button_set_digits(self.handle, digits)
+    end
+end
+
+;; ── ProgressBar ─────────────────────────────────────────────────────────────
+
+struct ProgressBar is
+    pub handle: int
+end
+
+pub fn new_progress_bar() -> ProgressBar is
+    return ProgressBar { handle: gtk_ffi::gtk_progress_bar_new() }
+end
+
+impl ProgressBar is
+    fn set_fraction(self, fraction: f64) is
+        gtk_ffi::gtk_progress_bar_set_fraction(self.handle, fraction)
+    end
+
+    fn fraction(self) -> f64 is
+        return gtk_ffi::gtk_progress_bar_get_fraction(self.handle)
+    end
+
+    fn set_text(self, text: string) is
+        gtk_ffi::gtk_progress_bar_set_text(self.handle, text)
+    end
+
+    fn set_show_text(self, show: bool) is
+        gtk_ffi::gtk_progress_bar_set_show_text(self.handle, gtk::b2i(show))
+    end
+
+    ;; Tryb „nieokreslony”: kazde wywolanie przesuwa wskaznik o krok.
+    fn pulse(self) is
+        gtk_ffi::gtk_progress_bar_pulse(self.handle)
+    end
+end
+
+;; ── LevelBar ────────────────────────────────────────────────────────────────
+
+struct LevelBar is
+    pub handle: int
+end
+
+pub fn new_level_bar(min: f64, max: f64) -> LevelBar is
+    return LevelBar { handle: gtk_ffi::gtk_level_bar_new_for_interval(min, max) }
+end
+
+impl LevelBar is
+    fn value(self) -> f64 is
+        return gtk_ffi::gtk_level_bar_get_value(self.handle)
+    end
+
+    fn set_value(self, value: f64) is
+        gtk_ffi::gtk_level_bar_set_value(self.handle, value)
+    end
+end
+
+;; ── Spinner ─────────────────────────────────────────────────────────────────
+
+struct Spinner is
+    pub handle: int
+end
+
+pub fn new_spinner() -> Spinner is
+    return Spinner { handle: gtk_ffi::gtk_spinner_new() }
+end
+
+impl Spinner is
+    fn start(self) is gtk_ffi::gtk_spinner_start(self.handle) end
+    fn stop(self)  is gtk_ffi::gtk_spinner_stop(self.handle) end
+
+    fn is_spinning(self) -> bool is
+        return gtk_ffi::gtk_spinner_get_spinning(self.handle) != 0
+    end
+end
+
+;; ── Image ───────────────────────────────────────────────────────────────────
+
+struct Image is
+    pub handle: int
+end
+
+pub fn new_image(path: string) -> Image is
+    return Image { handle: gtk_ffi::gtk_image_new_from_file(path) }
+end
+
+;; Obrazek z ikony motywu (np. "folder-symbolic").
+pub fn new_icon_image(icon_name: string) -> Image is
+    return Image { handle: gtk_ffi::gtk_image_new_from_icon_name(icon_name) }
+end
+
+impl Image is
+    fn set_file(self, path: string) is
+        gtk_ffi::gtk_image_set_from_file(self.handle, path)
+    end
+
+    fn set_icon_name(self, icon_name: string) is
+        gtk_ffi::gtk_image_set_from_icon_name(self.handle, icon_name)
+    end
+
+    fn set_pixel_size(self, pixel_size: int) is
+        gtk_ffi::gtk_image_set_pixel_size(self.handle, pixel_size)
+    end
+
+    fn clear(self) is
+        gtk_ffi::gtk_image_clear(self.handle)
+    end
+end
+
+;; ── Picture ─────────────────────────────────────────────────────────────────
+
+struct Picture is
+    pub handle: int
+end
+
+;; Skalowalny obraz z pliku (w odroznieniu od `Image` rosnie razem z oknem).
+pub fn new_picture(path: string) -> Picture is
+    return Picture { handle: gtk_ffi::gtk_picture_new_for_filename(path) }
+end
+
+impl Picture is
+    fn set_file(self, path: string) is
+        gtk_ffi::gtk_picture_set_filename(self.handle, path)
+    end
+
+    ;; `true`: obraz moze byc mniejszy od swojego naturalnego rozmiaru.
+    fn set_can_shrink(self, can_shrink: bool) is
+        gtk_ffi::gtk_picture_set_can_shrink(self.handle, gtk::b2i(can_shrink))
+    end
+
+    ;; Patrz `gtk::content_fit_*()` (GTK >= 4.8).
+    fn set_content_fit(self, content_fit: int) is
+        gtk_ffi::gtk_picture_set_content_fit(self.handle, content_fit)
+    end
+end
+
+;; ── Calendar ────────────────────────────────────────────────────────────────
+
+struct Calendar is
+    pub handle: int
+end
+
+pub fn new_calendar() -> Calendar is
+    return Calendar { handle: gtk_ffi::gtk_calendar_new() }
+end
+
+;; Zaznaczona data jest pakowana w jedna liczbe `rok*10000 + miesiac*100 + dzien`
+;; (GDateTime zwalniany zawsze od razu).
+fn calendar_packed(handle: int) -> int is
+    let dt: int = gtk_ffi::gtk_calendar_get_date(handle)
+    let y: int = gtk::c_int(gtk_ffi::g_date_time_get_year(dt))
+    let m: int = gtk::c_int(gtk_ffi::g_date_time_get_month(dt))
+    let d: int = gtk::c_int(gtk_ffi::g_date_time_get_day_of_month(dt))
+    gtk_ffi::g_date_time_unref(dt)
+    return y * 10000 + m * 100 + d
+end
+
+impl Calendar is
+    fn year(self) -> int is
+        return calendar_packed(self.handle) / 10000
+    end
+
+    ;; 1..12
+    fn month(self) -> int is
+        return (calendar_packed(self.handle) / 100) % 100
+    end
+
+    ;; 1..31
+    fn day(self) -> int is
+        return calendar_packed(self.handle) % 100
+    end
+
+    ;; Zaznaczona data jako tekst `RRRR-MM-DD`.
+    fn date_string(self) -> string is
+        let p: int = calendar_packed(self.handle)
+        let m: int = (p / 100) % 100
+        let d: int = p % 100
+        let ms: string = if m < 10 then "0" + to_string(m) else to_string(m)
+        let ds: string = if d < 10 then "0" + to_string(d) else to_string(d)
+        return to_string(p / 10000) + "-" + ms + "-" + ds
+    end
+
+    ;; Pogrubia dzien miesiaca (1..31) w widoku kalendarza.
+    fn mark_day(self, day: int) is
+        gtk_ffi::gtk_calendar_mark_day(self.handle, day)
+    end
+
+    fn clear_marks(self) is
+        gtk_ffi::gtk_calendar_clear_marks(self.handle)
+    end
+end
