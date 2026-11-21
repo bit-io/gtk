@@ -1,0 +1,124 @@
+extern static [c, "gtk4"] is
+    fn gtk_box_new(orientation: int, spacing: int) -> int
+    fn gtk_box_append(box_: int, child: int)
+    fn gtk_box_remove(box_: int, child: int)
+    fn gtk_box_set_spacing(box_: int, spacing: int)
+    fn gtk_box_set_homogeneous(box_: int, homogeneous: int)
+end
+
+;; ── GTK4 — GtkGrid ────────────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_grid_new() -> int
+    fn gtk_grid_attach(grid: int, child: int, column: int, row: int, w: int, h: int)
+    fn gtk_grid_set_row_spacing(grid: int, spacing: int)
+    fn gtk_grid_set_column_spacing(grid: int, spacing: int)
+end
+
+;; ── GTK4 — GtkStack + GtkStackSwitcher (zakladki) ────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_stack_new() -> int
+    fn gtk_stack_add_titled(stack: int, child: int, name: string, title: string) -> int
+    fn gtk_stack_set_visible_child_name(stack: int, name: string)
+    fn gtk_stack_get_visible_child_name(stack: int) -> string
+    fn gtk_stack_switcher_new() -> int
+    fn gtk_stack_switcher_set_stack(switcher: int, stack: int)
+end
+
+;; ── GTK4 — GtkCenterBox / GtkOverlay ──────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_center_box_new() -> int
+    fn gtk_center_box_set_start_widget(center_box: int, child: int)
+    fn gtk_center_box_set_center_widget(center_box: int, child: int)
+    fn gtk_center_box_set_end_widget(center_box: int, child: int)
+    fn gtk_overlay_new() -> int
+    fn gtk_overlay_set_child(overlay: int, child: int)
+    fn gtk_overlay_add_overlay(overlay: int, child: int)
+    fn gtk_overlay_remove_overlay(overlay: int, child: int)
+end
+
+;; ── GtkScrolledWindow — dodatki ───────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_scrolled_window_set_policy(scrolled: int, hscrollbar_policy: int, vscrollbar_policy: int)   ;; 0 always 1 automatic 2 never 3 external
+    fn gtk_scrolled_window_set_min_content_width(scrolled: int, width: int)
+    fn gtk_scrolled_window_set_min_content_height(scrolled: int, height: int)
+    fn gtk_scrolled_window_set_max_content_height(scrolled: int, height: int)
+    fn gtk_scrolled_window_set_propagate_natural_height(scrolled: int, propagate: int)
+end
+
+;; ── GtkBox / GtkGrid — dodatki ────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_box_prepend(box_: int, child: int)
+    fn gtk_box_reorder_child_after(box_: int, child: int, sibling: int)
+    fn gtk_grid_remove(grid: int, child: int)
+    fn gtk_grid_set_row_homogeneous(grid: int, homogeneous: int)
+    fn gtk_grid_set_column_homogeneous(grid: int, homogeneous: int)
+end
+
+;; ── GtkStack — dodatki ────────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_stack_add_named(stack: int, child: int, name: string) -> int
+    fn gtk_stack_remove(stack: int, child: int)
+    fn gtk_stack_get_visible_child(stack: int) -> int
+    fn gtk_stack_set_transition_type(stack: int, transition: int)
+    fn gtk_stack_set_transition_duration(stack: int, duration_ms: int)
+end
+
+;; ── GtkNotebook ───────────────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_notebook_new() -> int
+    fn gtk_notebook_append_page(notebook: int, child: int, tab_label: int) -> int
+    fn gtk_notebook_remove_page(notebook: int, page_num: int)
+    fn gtk_notebook_get_current_page(notebook: int) -> int
+    fn gtk_notebook_set_current_page(notebook: int, page_num: int)
+    fn gtk_notebook_get_n_pages(notebook: int) -> int
+    fn gtk_notebook_set_tab_pos(notebook: int, pos: int)         ;; 0 left 1 right 2 top 3 bottom
+    fn gtk_notebook_set_scrollable(notebook: int, scrollable: int)
+end
+
+;; ── GtkPaned ──────────────────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_paned_new(orientation: int) -> int
+    fn gtk_paned_set_start_child(paned: int, child: int)
+    fn gtk_paned_set_end_child(paned: int, child: int)
+    fn gtk_paned_get_position(paned: int) -> int
+    fn gtk_paned_set_position(paned: int, position: int)
+    fn gtk_paned_set_wide_handle(paned: int, wide: int)
+end
+
+;; ── GtkRevealer / GtkExpander ─────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_revealer_new() -> int
+    fn gtk_revealer_set_child(revealer: int, child: int)
+    fn gtk_revealer_set_reveal_child(revealer: int, reveal_child: int)
+    fn gtk_revealer_get_reveal_child(revealer: int) -> int
+    fn gtk_revealer_set_transition_type(revealer: int, transition: int)
+    fn gtk_revealer_set_transition_duration(revealer: int, duration_ms: int)
+    fn gtk_expander_new(label: string) -> int
+    fn gtk_expander_set_child(expander: int, child: int)
+    fn gtk_expander_set_label(expander: int, label: string)
+    fn gtk_expander_set_expanded(expander: int, expanded: int)
+    fn gtk_expander_get_expanded(expander: int) -> int
+end
+
+;; ── GtkFlowBox ────────────────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_flow_box_new() -> int
+    fn gtk_flow_box_append(flow_box: int, child: int)
+    fn gtk_flow_box_remove(flow_box: int, child: int)
+    fn gtk_flow_box_set_max_children_per_line(flow_box: int, n_children: int)
+    fn gtk_flow_box_set_min_children_per_line(flow_box: int, n_children: int)
+    fn gtk_flow_box_set_homogeneous(flow_box: int, homogeneous: int)
+    fn gtk_flow_box_set_row_spacing(flow_box: int, spacing: int)
+    fn gtk_flow_box_set_column_spacing(flow_box: int, spacing: int)
+    fn gtk_flow_box_set_selection_mode(flow_box: int, mode: int)
+end
