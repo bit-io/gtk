@@ -1,0 +1,384 @@
+fn edge_high_to_low(prev: int, cur: int) -> bool is
+    return prev == 1 && cur == 0
+end
+
+impl gtk_App is
+    ;; Zatrzymuje `run()` po zakonczeniu biezacej iteracji. Najprosciej
+    ;; podlaczyc to pod `on_click` przycisku "Wyjdz", albo pod
+    ;; `on_window_close` (patrz wyzej) dla przyblizenia klikniecia „X”.
+    fn quit(self) is
+        self.running = false
+    end
+
+    ;; Jedno przejscie po wszystkich obserwowanych widgetach i timerach —
+    ;; wywolywane automatycznie przez `run()`, ale mozesz je wolac recznie we
+    ;; wlasnej petli, jesli potrzebujesz pelnej kontroli nad iteracja.
+    ;; Stan „poprzedni” jest zapisywany PRZED wywolaniem domkniecia, wiec
+    ;; domkniecie moze bezpiecznie zmieniac obserwowany widget.
+    fn poll(self) is
+        let mut i: int = 0
+
+        self.drain_signals()
+        self.drain_files()
+        self.poll_ext()
+
+        i = 0
+        while i < self.press_widget.len() is
+            let w: int = self.press_widget[i]
+            if w != 0 is
+                let flags: int = gtk_ffi::gtk_widget_get_state_flags(w)
+                let cur: int = flags & 1
+                let prev: int = self.press_prev[i]
+                self.press_prev[i] = cur
+                if prev == 0 && cur == 1 is
+                    let cb = self.press_cb[i]
+                    cb()
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.chk_widget.len() is
+            let w: int = self.chk_widget[i]
+            if w != 0 is
+                let cur: int = gtk_ffi::gtk_check_button_get_active(w)
+                let prev: int = self.chk_prev[i]
+                self.chk_prev[i] = cur
+                if cur != prev is
+                    let cb = self.chk_cb[i]
+                    cb(cur != 0)
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.tgl_widget.len() is
+            let w: int = self.tgl_widget[i]
+            if w != 0 is
+                let cur: int = gtk_ffi::gtk_toggle_button_get_active(w)
+                let prev: int = self.tgl_prev[i]
+                self.tgl_prev[i] = cur
+                if cur != prev is
+                    let cb = self.tgl_cb[i]
+                    cb(cur != 0)
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.swt_widget.len() is
+            let w: int = self.swt_widget[i]
+            if w != 0 is
+                let cur: int = gtk_ffi::gtk_switch_get_active(w)
+                let prev: int = self.swt_prev[i]
+                self.swt_prev[i] = cur
+                if cur != prev is
+                    let cb = self.swt_cb[i]
+                    cb(cur != 0)
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.entry_widget.len() is
+            let w: int = self.entry_widget[i]
+            if w != 0 is
+                let cur: string = gtk_ffi::gtk_editable_get_text(w)
+                let prev: string = self.entry_prev[i]
+                self.entry_prev[i] = cur
+                if cur != prev is
+                    let cb = self.entry_cb[i]
+                    cb(cur)
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.hover_widget.len() is
+            let w: int = self.hover_widget[i]
+            if w != 0 is
+                let flags: int = gtk_ffi::gtk_widget_get_state_flags(w)
+                let cur: int = if (flags & 2) != 0 then 1 else 0   ;; GTK_STATE_FLAG_PRELIGHT
+                let prev: int = self.hover_prev[i]
+                self.hover_prev[i] = cur
+                if cur != prev is
+                    let cb = self.hover_cb[i]
+                    cb(cur == 1)
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.focus_widget.len() is
+            let w: int = self.focus_widget[i]
+            if w != 0 is
+                let flags: int = gtk_ffi::gtk_widget_get_state_flags(w)
+                let cur: int = if (flags & 16384) != 0 then 1 else 0   ;; GTK_STATE_FLAG_FOCUS_WITHIN
+                let prev: int = self.focus_prev[i]
+                self.focus_prev[i] = cur
+                if cur != prev is
+                    let cb = self.focus_cb[i]
+                    cb(cur == 1)
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.listbox_widget.len() is
+            let w: int = self.listbox_widget[i]
+            if w != 0 is
+                let row: int = gtk_ffi::gtk_list_box_get_selected_row(w)
+                let mut cur: int = -1
+                if row != 0 is cur = gtk::c_int(gtk_ffi::gtk_list_box_row_get_index(row)) end
+                let prev: int = self.listbox_prev[i]
+                self.listbox_prev[i] = cur
+                if cur != prev is
+                    let cb = self.listbox_cb[i]
+                    cb(cur)
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.dropdown_widget.len() is
+            let w: int = self.dropdown_widget[i]
+            if w != 0 is
+                let raw: int = gtk_ffi::gtk_drop_down_get_selected(w)
+                let mut cur: int = raw
+                if raw == 4294967295 is cur = -1 end
+                let prev: int = self.dropdown_prev[i]
+                self.dropdown_prev[i] = cur
+                if cur != prev is
+                    let cb = self.dropdown_cb[i]
+                    cb(cur)
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.stack_widget.len() is
+            let w: int = self.stack_widget[i]
+            if w != 0 is
+                let cur: string = gtk_ffi::gtk_stack_get_visible_child_name(w)
+                let prev: string = self.stack_prev[i]
+                self.stack_prev[i] = cur
+                if cur != prev is
+                    let cb = self.stack_cb[i]
+                    cb(cur)
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.nb_widget.len() is
+            let w: int = self.nb_widget[i]
+            if w != 0 is
+                let cur: int = gtk::c_int(gtk_ffi::gtk_notebook_get_current_page(w))
+                let prev: int = self.nb_prev[i]
+                self.nb_prev[i] = cur
+                if cur != prev is
+                    let cb = self.nb_cb[i]
+                    cb(cur)
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.win_widget.len() is
+            let w: int = self.win_widget[i]
+            if w != 0 is
+                let cur: int = gtk_ffi::gtk_widget_get_mapped(w)
+                let prev: int = self.win_prev[i]
+                self.win_prev[i] = cur
+                if edge_high_to_low(prev, cur) is
+                    let cb = self.win_cb[i]
+                    cb()
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.wact_widget.len() is
+            let w: int = self.wact_widget[i]
+            if w != 0 is
+                let cur: int = gtk_ffi::gtk_window_is_active(w)
+                let prev: int = self.wact_prev[i]
+                self.wact_prev[i] = cur
+                if cur != prev is
+                    let cb = self.wact_cb[i]
+                    cb(cur != 0)
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.resize_widget.len() is
+            let w: int = self.resize_widget[i]
+            if w != 0 is
+                let cur: int = gtk::c_int(gtk_ffi::gtk_widget_get_width(w)) * 100000 + gtk::c_int(gtk_ffi::gtk_widget_get_height(w))
+                let prev: int = self.resize_prev[i]
+                self.resize_prev[i] = cur
+                if cur != prev is
+                    let cb = self.resize_cb[i]
+                    cb(cur / 100000, cur % 100000)
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.spin_widget.len() is
+            let w: int = self.spin_widget[i]
+            if w != 0 is
+                let cur: f64 = gtk_ffi::gtk_spin_button_get_value(w)
+                let prev: f64 = self.spin_prev[i]
+                self.spin_prev[i] = cur
+                if cur != prev is
+                    let cb = self.spin_cb[i]
+                    cb(cur)
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.scale_widget.len() is
+            let w: int = self.scale_widget[i]
+            if w != 0 is
+                let cur: f64 = gtk_ffi::gtk_range_get_value(w)
+                let prev: f64 = self.scale_prev[i]
+                self.scale_prev[i] = cur
+                if cur != prev is
+                    let cb = self.scale_cb[i]
+                    cb(cur)
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.paned_widget.len() is
+            let w: int = self.paned_widget[i]
+            if w != 0 is
+                let cur: int = gtk::c_int(gtk_ffi::gtk_paned_get_position(w))
+                let prev: int = self.paned_prev[i]
+                self.paned_prev[i] = cur
+                if cur != prev is
+                    let cb = self.paned_cb[i]
+                    cb(cur)
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.expander_widget.len() is
+            let w: int = self.expander_widget[i]
+            if w != 0 is
+                let cur: int = gtk_ffi::gtk_expander_get_expanded(w)
+                let prev: int = self.expander_prev[i]
+                self.expander_prev[i] = cur
+                if cur != prev is
+                    let cb = self.expander_cb[i]
+                    cb(cur != 0)
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.reveal_widget.len() is
+            let w: int = self.reveal_widget[i]
+            if w != 0 is
+                let cur: int = gtk_ffi::gtk_revealer_get_reveal_child(w)
+                let prev: int = self.reveal_prev[i]
+                self.reveal_prev[i] = cur
+                if cur != prev is
+                    let cb = self.reveal_cb[i]
+                    cb(cur != 0)
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.tview_widget.len() is
+            let w: int = self.tview_widget[i]
+            if w != 0 is
+                let buf: int = gtk_ffi::gtk_text_view_get_buffer(w)
+                let cur: int = gtk_ffi::gtk_text_buffer_get_modified(buf)
+                if cur != 0 is gtk_ffi::gtk_text_buffer_set_modified(buf, 0) end
+                let prev: int = self.tview_prev[i]
+                self.tview_prev[i] = cur
+                if cur != 0 is
+                    let cb = self.tview_cb[i]
+                    cb(gtk::text_view_text(w))
+                end
+            end
+            i += 1
+        end
+
+        i = 0
+        while i < self.cal_widget.len() is
+            let w: int = self.cal_widget[i]
+            if w != 0 is
+                let cur: int = gtk::calendar_packed(w)
+                let prev: int = self.cal_prev[i]
+                self.cal_prev[i] = cur
+                if cur != prev is
+                    let cb = self.cal_cb[i]
+                    cb(cur / 10000, (cur / 100) % 100, cur % 100)
+                end
+            end
+            i += 1
+        end
+
+        ;; timery
+        let now: int = gtk_ffi::g_get_monotonic_time() / 1000
+        i = 0
+        while i < self.tmr_cb.len() is
+            if self.tmr_active[i] == 1 && now >= self.tmr_next[i] is
+                if self.tmr_repeat[i] == 1 is
+                    self.tmr_next[i] = now + self.tmr_interval[i]
+                else is
+                    self.tmr_active[i] = 0
+                end
+                let cb = self.tmr_cb[i]
+                cb()
+            end
+            i += 1
+        end
+    end
+
+    ;; Petla glowna aplikacji: kreci prawdziwa petla zdarzen GLib
+    ;; (`g_main_context_iteration`, wiec rysowanie, input, resize itd.
+    ;; dzialaja w 100% tak samo jak w kazdej innej appce GTK4) i po kazdej
+    ;; iteracji sprawdza zarejestrowane widgety i timery.
+    ;; Bez timerow petla BLOKUJE sie w oczekiwaniu na zdarzenie (0% CPU w
+    ;; bezczynnosci); z aktywnym timerem iteruje nieblokujaco i spi po ~4 ms.
+    fn run(self) is
+        while self.running is
+            if self.active_timers() > 0 is
+                let dispatched: int = gtk_ffi::g_main_context_iteration(0, 0)
+                self.poll()
+                if dispatched == 0 is gtk_ffi::g_usleep(4000) end
+            else is
+                gtk_ffi::g_main_context_iteration(0, 1)
+                self.poll()
+            end
+        end
+    end
+end
