@@ -1,0 +1,85 @@
+struct SwitchRow is
+    pub handle: int
+end
+
+pub fn new_switch_row(title: string, subtitle: string) -> SwitchRow is
+    let h: int = gtk_ffi::adw_switch_row_new()
+    gtk_ffi::adw_preferences_row_set_title(h, title)
+    if subtitle != "" is gtk_ffi::adw_action_row_set_subtitle(h, subtitle) end
+    return SwitchRow { handle: h }
+end
+
+impl SwitchRow is
+    fn is_active(self) -> bool is
+        return gtk::c_int(gtk_ffi::adw_switch_row_get_active(self.handle)) != 0
+    end
+
+    fn set_active(self, active: bool) is
+        gtk_ffi::adw_switch_row_set_active(self.handle, gtk::b2i(active))
+    end
+end
+
+;; ── ComboRow ────────────────────────────────────────────────────────────────────────
+struct ComboRow is
+    pub handle: int
+    pub model:  int
+end
+
+pub fn new_combo_row(title: string) -> ComboRow is
+    let h: int = gtk_ffi::adw_combo_row_new()
+    let model: int = gtk_ffi::gtk_string_list_new(0)
+    gtk_ffi::adw_combo_row_set_model(h, model)
+    gtk_ffi::adw_preferences_row_set_title(h, title)
+    return ComboRow { handle: h, model: model }
+end
+
+impl ComboRow is
+    fn append(self, item: string) is
+        gtk_ffi::gtk_string_list_append(self.model, item)
+    end
+
+    fn selected(self) -> int is
+        return gtk::c_int(gtk_ffi::adw_combo_row_get_selected(self.handle))
+    end
+
+    fn set_selected(self, index: int) is
+        gtk_ffi::adw_combo_row_set_selected(self.handle, index)
+    end
+end
+
+;; ── SpinRow ───────────────────────────────────────────────────────────────────────
+struct SpinRow is
+    pub handle: int
+end
+
+pub fn new_spin_row(title: string, min: f64, max: f64, step: f64) -> SpinRow is
+    let h: int = gtk_ffi::adw_spin_row_new_with_range(min, max, step)
+    gtk_ffi::adw_preferences_row_set_title(h, title)
+    return SpinRow { handle: h }
+end
+
+impl SpinRow is
+    fn value(self) -> f64 is
+        return gtk_ffi::adw_spin_row_get_value(self.handle)
+    end
+
+    fn set_value(self, value: f64) is
+        gtk_ffi::adw_spin_row_set_value(self.handle, value)
+    end
+end
+
+;; ── Avatar ──────────────────────────────────────────────────────────────────────────
+;; Okragly awatar z inicjalami wyliczonymi z `text` (np. imie i nazwisko).
+struct Avatar is
+    pub handle: int
+end
+
+pub fn new_avatar(size: int, text: string, show_initials: bool) -> Avatar is
+    return Avatar { handle: gtk_ffi::adw_avatar_new(size, text, gtk::b2i(show_initials)) }
+end
+
+impl Avatar is
+    fn set_text(self, text: string) is gtk_ffi::adw_avatar_set_text(self.handle, text) end
+    fn set_show_initials(self, show: bool) is gtk_ffi::adw_avatar_set_show_initials(self.handle, gtk::b2i(show)) end
+    fn set_size(self, size: int) is gtk_ffi::adw_avatar_set_size(self.handle, size) end
+end
