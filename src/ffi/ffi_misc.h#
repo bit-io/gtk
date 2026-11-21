@@ -1,0 +1,52 @@
+extern static [c, "gtk4"] is
+    fn gtk_menu_button_new() -> int
+    fn gtk_menu_button_set_label(menu_button: int, label: string)
+    fn gtk_menu_button_set_popover(menu_button: int, popover: int)
+    fn gtk_popover_new() -> int
+    fn gtk_popover_set_child(popover: int, child: int)
+    fn gtk_popover_popup(popover: int)
+    fn gtk_popover_popdown(popover: int)
+end
+
+;; ── GTK4 — style CSS (GtkCssProvider) ─────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_css_provider_new() -> int
+    fn gtk_css_provider_load_from_string(provider: int, css: string)
+    fn gtk_css_provider_load_from_path(provider: int, path: string)
+    fn gdk_display_get_default() -> int
+    fn gtk_style_context_add_provider_for_display(display: int, provider: int, priority: int)
+end
+
+;; ── GtkCalendar + GDateTime ───────────────────────────────────────────────────
+;; `gtk_calendar_get_date` zwraca GDateTime* (transfer full) — `gtk.h#` zawsze
+;; zwalnia go przez `g_date_time_unref`.
+
+extern static [c, "gtk4"] is
+    fn gtk_calendar_new() -> int
+    fn gtk_calendar_get_date(calendar: int) -> int
+    fn gtk_calendar_mark_day(calendar: int, day: int)
+    fn gtk_calendar_clear_marks(calendar: int)
+end
+
+extern static [c, "glib-2.0"] is
+    fn g_date_time_get_year(datetime: int) -> int
+    fn g_date_time_get_month(datetime: int) -> int
+    fn g_date_time_get_day_of_month(datetime: int) -> int
+    fn g_date_time_unref(datetime: int)
+end
+
+;; ── GtkMenuButton / GtkPopover — dodatki ──────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_menu_button_set_icon_name(menu_button: int, icon_name: string)
+    fn gtk_popover_set_autohide(popover: int, autohide: int)
+    fn gtk_popover_set_has_arrow(popover: int, has_arrow: int)
+end
+
+;; ── GdkClipboard (zapis tekstu; odczyt jest asynchroniczny = callback C) ──────
+
+extern static [c, "gtk4"] is
+    fn gdk_display_get_clipboard(display: int) -> int
+    fn gdk_clipboard_set_text(clipboard: int, text: string)
+end
