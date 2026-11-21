@@ -1,0 +1,249 @@
+pub fn set_halign(widget: int, align: int) is gtk_ffi::gtk_widget_set_halign(widget, align) end
+pub fn set_valign(widget: int, align: int) is gtk_ffi::gtk_widget_set_valign(widget, align) end
+
+;; Rozciaganie pojedynczo (`gtk::set_expand` ustawia obie osie naraz).
+pub fn set_hexpand(widget: int, expand: bool) is gtk_ffi::gtk_widget_set_hexpand(widget, gtk::b2i(expand)) end
+pub fn set_vexpand(widget: int, expand: bool) is gtk_ffi::gtk_widget_set_vexpand(widget, gtk::b2i(expand)) end
+
+;; Tooltip z markupem Pango, np. "<b>Zapisz</b> (Ctrl+S)".
+pub fn set_tooltip_markup(widget: int, markup: string) is
+    gtk_ffi::gtk_widget_set_tooltip_markup(widget, markup)
+end
+
+;; Przycina zawartosc do ramki widgetu (np. zaokraglone rogi z CSS).
+pub fn set_overflow_hidden(widget: int, hidden: bool) is
+    gtk_ffi::gtk_widget_set_overflow(widget, gtk::b2i(hidden))
+end
+
+;; Programowo „klika” widget (np. przycisk). Zwraca true, gdy widget obsluzyl aktywacje.
+pub fn activate(widget: int) -> bool is
+    return gtk::c_int(gtk_ffi::gtk_widget_activate(widget)) != 0
+end
+
+;; Czy `widget` lezy gdzies pod `ancestor` w drzewie widgetow.
+pub fn is_ancestor(widget: int, ancestor: int) -> bool is
+    return gtk::c_int(gtk_ffi::gtk_widget_is_ancestor(widget, ancestor)) != 0
+end
+
+;; Wspolczynnik skali ekranu (1 = zwykly, 2 = HiDPI).
+pub fn scale_factor(widget: int) -> int is
+    return gtk::c_int(gtk_ffi::gtk_widget_get_scale_factor(widget))
+end
+
+;; Przycisk reagujacy na Enter w oknie (razem z `Window::set_default_widget`).
+pub fn set_receives_default(widget: int, receives: bool) is
+    gtk_ffi::gtk_widget_set_receives_default(widget, gtk::b2i(receives))
+end
+
+;; ── Window ──────────────────────────────────────────────────────────────────
+impl gtk_Window is
+    ;; Domyslny rozmiar okna w pikselach (uzyj przed `present`).
+    fn set_default_size(self, width: int, height: int) is
+        gtk_ffi::gtk_window_set_default_size(self.handle, width, height)
+    end
+
+    ;; Ustawia widget, ktory dostaje fokus klawiatury.
+    fn set_focus(self, widget: int) is
+        gtk_ffi::gtk_window_set_focus(self.handle, widget)
+    end
+end
+
+;; ── CheckButton ───────────────────────────────────────────────────────────────
+impl gtk_CheckButton is
+    fn set_label(self, label: string) is
+        gtk_ffi::gtk_check_button_set_label(self.handle, label)
+    end
+
+    fn label(self) -> string is
+        return gtk_ffi::gtk_check_button_get_label(self.handle)
+    end
+
+    ;; Radio-buttony: wszystkie CheckButtony z ta sama „grupa” (pierwszy z nich) wykluczaja sie.
+    ;;   second.set_group(first)
+    fn set_group(self, leader: gtk::CheckButton) is
+        gtk_ffi::gtk_check_button_set_group(self.handle, leader.handle)
+    end
+
+    ;; Stan posredni („-”), np. gdy czesc elementow listy jest zaznaczona.
+    fn set_inconsistent(self, inconsistent: bool) is
+        gtk_ffi::gtk_check_button_set_inconsistent(self.handle, gtk::b2i(inconsistent))
+    end
+end
+
+;; ── Label / Entry ───────────────────────────────────────────────────────────────
+impl gtk_Label is
+    ;; Wlacza interpretacje markupu Pango w tekscie ustawianym przez `set_text`.
+    fn set_use_markup(self, on: bool) is
+        gtk_ffi::gtk_label_set_use_markup(self.handle, gtk::b2i(on))
+    end
+
+    fn set_single_line_mode(self, on: bool) is
+        gtk_ffi::gtk_label_set_single_line_mode(self.handle, gtk::b2i(on))
+    end
+
+    ;; Wyrownanie pionowe tekstu w etykiecie: 0.0 = gora, 0.5 = srodek, 1.0 = dol.
+    fn set_yalign(self, yalign: f64) is
+        gtk_ffi::gtk_label_set_yalign(self.handle, yalign)
+    end
+end
+
+impl gtk_Entry is
+    ;; Enter w polu aktywuje domyslny widget okna (zob. `Window::set_default_widget`).
+    fn set_activates_default(self, on: bool) is
+        gtk_ffi::gtk_entry_set_activates_default(self.handle, gtk::b2i(on))
+    end
+end
+
+;; ── ScrolledWindow: przewijanie programowe ───────────────────────────────────────
+;; Uwaga: rozmiar zawartosci zmienia sie dopiero po przeliczeniu ukladu (nastepna klatka).
+;; Po `append` do listy/logu wywolaj `scroll_to_bottom` z timera: `app.after(50, fn() ...)`.
+impl gtk_ScrolledWindow is
+    fn scroll_to_top(self) is
+        let adj: int = gtk_ffi::gtk_scrolled_window_get_vadjustment(self.handle)
+        gtk_ffi::gtk_adjustment_set_value(adj, gtk_ffi::gtk_adjustment_get_lower(adj))
+    end
+
+    fn scroll_to_bottom(self) is
+        let adj: int = gtk_ffi::gtk_scrolled_window_get_vadjustment(self.handle)
+        let target: f64 = gtk_ffi::gtk_adjustment_get_upper(adj) - gtk_ffi::gtk_adjustment_get_page_size(adj)
+        gtk_ffi::gtk_adjustment_set_value(adj, target)
+    end
+
+    ;; Pozycja pionowego przewiniecia w pikselach.
+    fn scroll_value(self) -> f64 is
+        return gtk_ffi::gtk_adjustment_get_value(gtk_ffi::gtk_scrolled_window_get_vadjustment(self.handle))
+    end
+
+    fn set_scroll_value(self, value: f64) is
+        gtk_ffi::gtk_adjustment_set_value(gtk_ffi::gtk_scrolled_window_get_vadjustment(self.handle), value)
+    end
+end
+
+;; ── Grid ───────────────────────────────────────────────────────────────────────────
+impl gtk_Grid is
+    ;; Wstawia `child` obok `sibling`; `side` = `gtk::position_left/right/top/bottom()`.
+    fn attach_next_to(self, child: int, sibling: int, side: int, width: int, height: int) is
+        gtk_ffi::gtk_grid_attach_next_to(self.handle, child, sibling, side, width, height)
+    end
+
+    fn insert_row(self, position: int) is gtk_ffi::gtk_grid_insert_row(self.handle, position) end
+    fn insert_column(self, position: int) is gtk_ffi::gtk_grid_insert_column(self.handle, position) end
+    fn remove_row(self, position: int) is gtk_ffi::gtk_grid_remove_row(self.handle, position) end
+    fn remove_column(self, position: int) is gtk_ffi::gtk_grid_remove_column(self.handle, position) end
+end
+
+;; ── Notebook / Paned / Stack / Revealer ────────────────────────────────────────────
+impl gtk_Notebook is
+    fn set_show_tabs(self, show: bool) is
+        gtk_ffi::gtk_notebook_set_show_tabs(self.handle, gtk::b2i(show))
+    end
+end
+
+impl gtk_Paned is
+    fn set_resize_start(self, resize: bool) is gtk_ffi::gtk_paned_set_resize_start_child(self.handle, gtk::b2i(resize)) end
+    fn set_resize_end(self, resize: bool) is gtk_ffi::gtk_paned_set_resize_end_child(self.handle, gtk::b2i(resize)) end
+    fn set_shrink_start(self, shrink: bool) is gtk_ffi::gtk_paned_set_shrink_start_child(self.handle, gtk::b2i(shrink)) end
+    fn set_shrink_end(self, shrink: bool) is gtk_ffi::gtk_paned_set_shrink_end_child(self.handle, gtk::b2i(shrink)) end
+end
+
+impl gtk_Stack is
+    ;; Jednakowy rozmiar wszystkich stron w poziomie / pionie (brak „skakania” okna).
+    fn set_homogeneous(self, horizontal: bool, vertical: bool) is
+        gtk_ffi::gtk_stack_set_hhomogeneous(self.handle, gtk::b2i(horizontal))
+        gtk_ffi::gtk_stack_set_vhomogeneous(self.handle, gtk::b2i(vertical))
+    end
+
+    fn set_interpolate_size(self, on: bool) is
+        gtk_ffi::gtk_stack_set_interpolate_size(self.handle, gtk::b2i(on))
+    end
+end
+
+impl gtk_Revealer is
+    ;; true dopiero, gdy animacja odslaniania sie zakonczyla (w odroznieniu od `is_revealed`).
+    fn child_revealed(self) -> bool is
+        return gtk::c_int(gtk_ffi::gtk_revealer_get_child_revealed(self.handle)) != 0
+    end
+end
+
+;; ── ProgressBar / LevelBar ──────────────────────────────────────────────────────────
+impl gtk_ProgressBar is
+    fn set_inverted(self, inverted: bool) is
+        gtk_ffi::gtk_progress_bar_set_inverted(self.handle, gtk::b2i(inverted))
+    end
+end
+
+impl gtk_LevelBar is
+    fn set_range(self, min: f64, max: f64) is
+        gtk_ffi::gtk_level_bar_set_min_value(self.handle, min)
+        gtk_ffi::gtk_level_bar_set_max_value(self.handle, max)
+    end
+end
+
+;; ── TextView: marginesy i cofanie/ponawianie ────────────────────────────────────────
+impl gtk_TextView is
+    fn set_padding(self, left: int, top: int, right: int, bottom: int) is
+        gtk_ffi::gtk_text_view_set_left_margin(self.handle, left)
+        gtk_ffi::gtk_text_view_set_top_margin(self.handle, top)
+        gtk_ffi::gtk_text_view_set_right_margin(self.handle, right)
+        gtk_ffi::gtk_text_view_set_bottom_margin(self.handle, bottom)
+    end
+
+    fn set_line_spacing(self, pixels_above: int) is
+        gtk_ffi::gtk_text_view_set_pixels_above_lines(self.handle, pixels_above)
+    end
+
+    fn set_undo_enabled(self, on: bool) is
+        gtk_ffi::gtk_text_buffer_set_enable_undo(gtk_ffi::gtk_text_view_get_buffer(self.handle), gtk::b2i(on))
+    end
+
+    fn undo(self) is gtk_ffi::gtk_text_buffer_undo(gtk_ffi::gtk_text_view_get_buffer(self.handle)) end
+    fn redo(self) is gtk_ffi::gtk_text_buffer_redo(gtk_ffi::gtk_text_view_get_buffer(self.handle)) end
+
+    fn can_undo(self) -> bool is
+        return gtk::c_int(gtk_ffi::gtk_text_buffer_get_can_undo(gtk_ffi::gtk_text_view_get_buffer(self.handle))) != 0
+    end
+
+    fn can_redo(self) -> bool is
+        return gtk::c_int(gtk_ffi::gtk_text_buffer_get_can_redo(gtk_ffi::gtk_text_view_get_buffer(self.handle))) != 0
+    end
+
+    ;; Wstawia tekst w miejscu kursora (podlega cofaniu, w przeciwienstwie do `set_text`).
+    fn insert_at_cursor(self, text: string) is
+        gtk_ffi::gtk_text_buffer_insert_at_cursor(gtk_ffi::gtk_text_view_get_buffer(self.handle), text, -1)
+    end
+end
+
+;; ── DropDown / ListBox ──────────────────────────────────────────────────────────────
+impl gtk_DropDown is
+    ;; Usuwa wszystkie opcje.
+    fn clear(self) is
+        let n: int = self.count()
+        if n > 0 is gtk_ffi::gtk_string_list_splice(self.model, 0, n, 0) end
+    end
+
+    ;; Podmienia cala liste opcji.
+    fn set_items(self, items: [string]) is
+        self.clear()
+        let mut i: int = 0
+        while i < items.len() is
+            self.append(items[i])
+            i += 1
+        end
+    end
+end
+
+impl gtk_ListBox is
+    fn set_show_separators(self, show: bool) is
+        gtk_ffi::gtk_list_box_set_show_separators(self.handle, gtk::b2i(show))
+    end
+
+    ;; Widget wiersza o danym indeksie albo 0, gdy nie istnieje.
+    fn row_at(self, index: int) -> int is
+        return gtk_ffi::gtk_list_box_get_row_at_index(self.handle, index)
+    end
+
+    ;; Dziala tylko przy `selection_mode_multiple()`.
+    fn select_all(self) is
+        gtk_ffi::gtk_list_box_select_all(self.handle)
+    end
+end
