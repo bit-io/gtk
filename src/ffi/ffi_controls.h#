@@ -1,0 +1,163 @@
+extern static [c, "gtk4"] is
+    fn gtk_button_new() -> int
+    fn gtk_button_new_with_label(label: string) -> int
+    fn gtk_button_set_label(button: int, label: string)
+end
+
+;; ── GTK4 — GtkLabel ───────────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_label_new(text: string) -> int
+    fn gtk_label_set_text(label: int, text: string)
+    fn gtk_label_set_xalign(label: int, xalign: f64)
+    fn gtk_label_set_wrap(label: int, wrap: int)
+end
+
+;; ── GTK4 — GtkEntry / GtkEditable (pole tekstowe) ────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_entry_new() -> int
+    fn gtk_entry_set_placeholder_text(entry: int, text: string)
+end
+
+extern static [c, "gtk4"] is
+    fn gtk_editable_set_text(editable: int, text: string)
+    fn gtk_editable_get_text(editable: int) -> string
+end
+
+;; ── GTK4 — GtkCheckButton (checkbox / radio) ─────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_check_button_new() -> int
+    fn gtk_check_button_new_with_label(label: string) -> int
+    fn gtk_check_button_set_active(check: int, active: int)
+    fn gtk_check_button_get_active(check: int) -> int
+end
+
+;; ── GTK4 — pozostałe widgety ──────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_image_new_from_file(path: string) -> int
+    fn gtk_separator_new(orientation: int) -> int
+    fn gtk_frame_new(label: string) -> int
+    fn gtk_frame_set_label(frame: int, label: string)
+    fn gtk_frame_set_child(frame: int, child: int)       ;; uzywane przez `Frame::set_child` — wczesniej brakowalo deklaracji
+    fn gtk_scrolled_window_new() -> int
+    fn gtk_scrolled_window_set_child(scrolled: int, child: int)
+    fn gtk_text_view_new() -> int
+    fn gtk_progress_bar_new() -> int
+    fn gtk_progress_bar_set_fraction(bar: int, fraction: f64)
+end
+
+;; ── GTK4 — GtkSpinButton ──────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_spin_button_new_with_range(min: f64, max: f64, step: f64) -> int
+    fn gtk_spin_button_get_value(spin: int) -> f64
+    fn gtk_spin_button_set_value(spin: int, value: f64)
+    fn gtk_spin_button_set_digits(spin: int, digits: int)
+end
+
+;; ── GtkButton / GtkToggleButton / GtkLinkButton ───────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_button_get_label(button: int) -> string
+    fn gtk_button_new_from_icon_name(icon_name: string) -> int
+    fn gtk_button_set_icon_name(button: int, icon_name: string)
+    fn gtk_button_set_has_frame(button: int, has_frame: int)
+    fn gtk_toggle_button_new_with_label(label: string) -> int
+    fn gtk_toggle_button_get_active(toggle: int) -> int
+    fn gtk_toggle_button_set_active(toggle: int, active: int)
+    fn gtk_toggle_button_set_group(toggle: int, group_leader: int)
+    fn gtk_link_button_new_with_label(uri: string, label: string) -> int
+    fn gtk_link_button_get_uri(link: int) -> string
+    fn gtk_link_button_set_uri(link: int, uri: string)
+end
+
+;; ── GtkLabel — dodatki ────────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_label_get_text(label: int) -> string
+    fn gtk_label_set_markup(label: int, markup: string)
+    fn gtk_label_set_selectable(label: int, selectable: int)
+    fn gtk_label_set_ellipsize(label: int, mode: int)           ;; 0 none 1 start 2 middle 3 end
+    fn gtk_label_set_max_width_chars(label: int, n_chars: int)
+    fn gtk_label_set_justify(label: int, justification: int)    ;; 0 left 1 right 2 center 3 fill
+    fn gtk_label_set_lines(label: int, lines: int)
+end
+
+;; ── GtkEntry / GtkPasswordEntry / GtkSearchEntry / GtkEditable — dodatki ──────
+
+extern static [c, "gtk4"] is
+    fn gtk_entry_set_visibility(entry: int, visible: int)
+    fn gtk_entry_set_max_length(entry: int, max_length: int)
+    fn gtk_entry_get_placeholder_text(entry: int) -> string
+    fn gtk_password_entry_new() -> int
+    fn gtk_password_entry_set_show_peek_icon(entry: int, show_peek_icon: int)
+    fn gtk_search_entry_new() -> int
+    fn gtk_editable_set_editable(editable: int, is_editable: int)
+    fn gtk_editable_get_editable(editable: int) -> int
+    fn gtk_editable_select_region(editable: int, start_pos: int, end_pos: int)
+    fn gtk_editable_set_position(editable: int, position: int)
+    fn gtk_editable_get_position(editable: int) -> int
+    fn gtk_editable_set_width_chars(editable: int, n_chars: int)
+end
+
+;; ── GtkSwitch ─────────────────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_switch_new() -> int
+    fn gtk_switch_get_active(sw: int) -> int
+    fn gtk_switch_set_active(sw: int, is_active: int)
+end
+
+;; ── GtkScale / GtkRange ───────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_scale_new_with_range(orientation: int, min: f64, max: f64, step: f64) -> int
+    fn gtk_scale_set_draw_value(scale: int, draw_value: int)
+    fn gtk_scale_set_digits(scale: int, digits: int)
+    fn gtk_scale_set_value_pos(scale: int, pos: int)            ;; 0 left 1 right 2 top 3 bottom
+    fn gtk_scale_add_mark(scale: int, value: f64, position: int, markup: string)
+    fn gtk_scale_clear_marks(scale: int)
+    fn gtk_range_get_value(range: int) -> f64
+    fn gtk_range_set_value(range: int, value: f64)
+    fn gtk_range_set_range(range: int, min: f64, max: f64)
+    fn gtk_range_set_increments(range: int, step: f64, page: f64)
+end
+
+;; ── GtkProgressBar / GtkLevelBar / GtkSpinner — dodatki ───────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_progress_bar_get_fraction(bar: int) -> f64
+    fn gtk_progress_bar_set_text(bar: int, text: string)
+    fn gtk_progress_bar_set_show_text(bar: int, show_text: int)
+    fn gtk_progress_bar_pulse(bar: int)
+    fn gtk_level_bar_new_for_interval(min_value: f64, max_value: f64) -> int
+    fn gtk_level_bar_get_value(bar: int) -> f64
+    fn gtk_level_bar_set_value(bar: int, value: f64)
+    fn gtk_spinner_new() -> int
+    fn gtk_spinner_start(spinner: int)
+    fn gtk_spinner_stop(spinner: int)
+    fn gtk_spinner_get_spinning(spinner: int) -> int
+end
+
+;; ── GtkImage / GtkPicture — dodatki ───────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_image_new_from_icon_name(icon_name: string) -> int
+    fn gtk_image_set_from_file(image: int, path: string)
+    fn gtk_image_set_from_icon_name(image: int, icon_name: string)
+    fn gtk_image_set_pixel_size(image: int, pixel_size: int)
+    fn gtk_image_clear(image: int)
+    fn gtk_picture_new_for_filename(path: string) -> int
+    fn gtk_picture_set_filename(picture: int, path: string)
+    fn gtk_picture_set_can_shrink(picture: int, can_shrink: int)
+    fn gtk_picture_set_content_fit(picture: int, content_fit: int)   ;; GTK >= 4.8: 0 fill 1 contain 2 cover 3 scale-down
+end
+
+extern static [c, "gtk4"] is
+    fn gtk_button_set_child(button: int, child: int)
+    fn gtk_label_set_width_chars(label: int, n_chars: int)
+    fn gtk_search_entry_set_placeholder_text(entry: int, text: string)
+end
