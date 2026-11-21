@@ -1,0 +1,140 @@
+use "std -> strings" from "strings"
+
+impl gtk_App is
+    ;; Okno z wiadomoscia i WLASNYMI przyciskami; wynik dostajesz asynchronicznie.
+    ;;   `buttons` — etykiety oddzielone "|", np. "Anuluj|Usun" (kolejnosc = indeksy 0, 1, ...).
+    ;;   `cb(i)`  — i = indeks klikniętego przycisku, albo -1 gdy okno zamknieto (Esc / X).
+    ;; Ostatni przycisk jest domyslny, pierwszy to „anuluj” (Esc).
+    fn confirm(self, parent: gtk::Window, message: string, detail: string, buttons: string, cb: fn(int) -> void) is
+        let safe_message: string = strings::replace_all(message, "%", "%%")
+        let dlg: int = gtk_ffi::gtk_alert_dialog_new(safe_message)
+        gtk_ffi::gtk_alert_dialog_set_modal(dlg, 1)
+        if detail != "" is gtk_ffi::gtk_alert_dialog_set_detail(dlg, detail) end
+        let labels: int = gtk_ffi::g_strsplit(buttons, "|", 0)
+        gtk_ffi::gtk_alert_dialog_set_buttons(dlg, labels)
+        gtk_ffi::g_strfreev(labels)
+        let n: int = strings::split(buttons, "|").len()
+        gtk_ffi::gtk_alert_dialog_set_cancel_button(dlg, 0)
+        gtk_ffi::gtk_alert_dialog_set_default_button(dlg, n - 1)
+        self.ask_dlg.push(dlg)
+        self.ask_cb.push(cb)
+        gtk_ffi::gtk_alert_dialog_choose(dlg, parent.handle, 0, fn_addr(gtk::cb_file_done), self.ask_q)
+    end
+
+    ;; Kończy zakonczone okna `confirm` i woła ich domkniecia (wolane z `poll_ext`).
+    fn drain_dialogs(self) is
+        let mut guard: int = 0
+        while gtk::c_int(gtk_ffi::g_queue_is_empty(self.ask_q)) == 0 && guard < 64 is
+            guard += 1
+            let dlg: int = gtk_ffi::g_queue_pop_head(self.ask_q)
+            let result: int = gtk_ffi::g_queue_pop_head(self.ask_q)
+            let choice: int = gtk::c_int(gtk_ffi::gtk_alert_dialog_choose_finish(dlg, result, 0))
+            gtk_ffi::g_object_unref(result)
+            gtk_ffi::g_object_unref(dlg)
+            let mut idx: int = -1
+            let mut i: int = 0
+            while i < self.ask_dlg.len() is
+                if self.ask_dlg[i] == dlg is idx = i end
+                i += 1
+            end
+            if idx >= 0 is
+                self.ask_dlg[idx] = 0
+                let cb = self.ask_cb[idx]
+                cb(choice)
+            end
+        end
+    end
+
+    ;; Odczyt tekstu ze schowka (asynchroniczny). `cb` dostaje tekst albo "" (pusty schowek / nie tekst).
+    fn read_clipboard(self, cb: fn(string) -> void) is
+        let display: int = gtk_ffi::gdk_display_get_default()
+        let clipboard: int = gtk_ffi::gdk_display_get_clipboard(display)
+        self.clip_src.push(clipboard)
+        self.clip_cb.push(cb)
+        gtk_ffi::gdk_clipboard_read_text_async(clipboard, 0, fn_addr(gtk::cb_file_done), self.clip_q)
+    end
+
+    fn drain_clipboard(self) is
+        let mut guard: int = 0
+        while gtk::c_int(gtk_ffi::g_queue_is_empty(self.clip_q)) == 0 && guard < 64 is
+            guard += 1
+            let src: int = gtk_ffi::g_queue_pop_head(self.clip_q)
+            let result: int = gtk_ffi::g_queue_pop_head(self.clip_q)
+            let text: string = gtk_ffi::gdk_clipboard_read_text_finish(src, result, 0)
+            gtk_ffi::g_object_unref(result)
+            let mut idx: int = -1
+            let mut i: int = 0
+            while i < self.clip_src.len() && idx < 0 is
+                if self.clip_src[i] == src is idx = i end
+                i += 1
+            end
+            if idx >= 0 is
+                self.clip_src[idx] = 0
+                let cb = self.clip_cb[idx]
+                cb(text)
+            end
+        end
+    end
+
+    ;; Zmiana stanu SwitchRow (libadwaita) — jak `on_switch`.
+    fn on_switch_row(self, row: gtk::SwitchRow, cb: fn(bool) -> void) is
+        self.swr_widget.push(row.handle)
+        self.swr_prev.push(gtk::c_int(gtk_ffi::adw_switch_row_get_active(row.handle)))
+        self.swr_cb.push(cb)
+    end
+
+    ;; Zmiana wyboru w ComboRow — `cb(indeks)`.
+    fn on_combo_row(self, row: gtk::ComboRow, cb: fn(int) -> void) is
+        self.cmr_widget.push(row.handle)
+        self.cmr_prev.push(gtk::c_int(gtk_ffi::adw_combo_row_get_selected(row.handle)))
+        self.cmr_cb.push(cb)
+    end
+
+    ;; Wolane na poczatku kazdego `unwatch` — dla widgetow z tego pliku.
+    fn unwatch_ext(self, handle: int) is
+        let mut i: int = 0
+        while i < self.swr_widget.len() is
+            if self.swr_widget[i] == handle is self.swr_widget[i] = 0 end
+            i += 1
+        end
+        i = 0
+        while i < self.cmr_widget.len() is
+            if self.cmr_widget[i] == handle is self.cmr_widget[i] = 0 end
+            i += 1
+        end
+    end
+
+    ;; Wolane z `poll`: kolejki asynchroniczne (confirm, schowek) i wiersze libadwaita.
+    fn poll_ext(self) is
+        self.drain_dialogs()
+        self.drain_clipboard()
+        let mut i: int = 0
+        while i < self.swr_widget.len() is
+            let w: int = self.swr_widget[i]
+            if w != 0 is
+                let cur: int = gtk::c_int(gtk_ffi::adw_switch_row_get_active(w))
+                let prev: int = self.swr_prev[i]
+                self.swr_prev[i] = cur
+                if cur != prev is
+                    let cb = self.swr_cb[i]
+                    cb(cur != 0)
+                end
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.cmr_widget.len() is
+            let w: int = self.cmr_widget[i]
+            if w != 0 is
+                let cur: int = gtk::c_int(gtk_ffi::adw_combo_row_get_selected(w))
+                let prev: int = self.cmr_prev[i]
+                self.cmr_prev[i] = cur
+                if cur != prev is
+                    let cb = self.cmr_cb[i]
+                    cb(cur)
+                end
+            end
+            i += 1
+        end
+    end
+end
