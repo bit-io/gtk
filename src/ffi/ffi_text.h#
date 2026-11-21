@@ -1,0 +1,16 @@
+extern static [c, "gtk4"] is
+    fn gtk_text_view_get_buffer(view: int) -> int
+    fn gtk_text_view_set_editable(view: int, setting: int)
+    fn gtk_text_view_set_wrap_mode(view: int, wrap_mode: int)   ;; 0 none 1 char 2 word 3 word-char
+    fn gtk_text_view_set_monospace(view: int, monospace: int)
+    fn gtk_text_view_set_cursor_visible(view: int, setting: int)
+    fn gtk_text_buffer_set_text(buffer: int, text: string, len: int)
+    fn gtk_text_buffer_insert_at_cursor(buffer: int, text: string, len: int)
+    fn gtk_text_buffer_get_start_iter(buffer: int, iter: int)
+    fn gtk_text_buffer_get_end_iter(buffer: int, iter: int)
+    fn gtk_text_buffer_get_text(buffer: int, start: int, end_iter: int, include_hidden: int) -> string
+    fn gtk_text_buffer_get_char_count(buffer: int) -> int
+    fn gtk_text_buffer_get_line_count(buffer: int) -> int
+    fn gtk_text_buffer_get_modified(buffer: int) -> int
+    fn gtk_text_buffer_set_modified(buffer: int, setting: int)
+end
