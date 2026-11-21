@@ -1,0 +1,93 @@
+pub fn orientation_horizontal() -> int is return 0 end
+
+pub fn orientation_vertical()   -> int is return 1 end
+
+;; GtkAlign
+pub fn align_fill()    -> int is return 0 end
+
+pub fn align_start()   -> int is return 1 end
+pub fn align_end()     -> int is return 2 end
+pub fn align_center()  -> int is return 3 end
+
+;; GtkEllipsizeMode
+pub fn ellipsize_none()   -> int is return 0 end
+
+pub fn ellipsize_start()  -> int is return 1 end
+pub fn ellipsize_middle() -> int is return 2 end
+pub fn ellipsize_end()    -> int is return 3 end
+
+;; GtkJustification
+pub fn justify_left()   -> int is return 0 end
+
+pub fn justify_right()  -> int is return 1 end
+pub fn justify_center() -> int is return 2 end
+pub fn justify_fill()   -> int is return 3 end
+
+;; GtkWrapMode (TextView)
+pub fn wrap_none()      -> int is return 0 end
+
+pub fn wrap_char()      -> int is return 1 end
+pub fn wrap_word()      -> int is return 2 end
+pub fn wrap_word_char() -> int is return 3 end
+
+;; GtkPolicyType (ScrolledWindow)
+pub fn policy_always()    -> int is return 0 end
+
+pub fn policy_automatic() -> int is return 1 end
+pub fn policy_never()     -> int is return 2 end
+pub fn policy_external()  -> int is return 3 end
+
+;; GtkPositionType (Notebook, Scale)
+pub fn position_left()   -> int is return 0 end
+
+pub fn position_right()  -> int is return 1 end
+pub fn position_top()    -> int is return 2 end
+pub fn position_bottom() -> int is return 3 end
+
+;; GtkRevealerTransitionType / GtkStackTransitionType (wspolne pierwsze wartosci)
+pub fn transition_none()        -> int is return 0 end
+
+pub fn transition_crossfade()   -> int is return 1 end
+pub fn transition_slide_right() -> int is return 2 end
+pub fn transition_slide_left()  -> int is return 3 end
+pub fn transition_slide_up()    -> int is return 4 end
+pub fn transition_slide_down()  -> int is return 5 end
+
+;; GtkContentFit (Picture, GTK >= 4.8)
+pub fn content_fit_fill()       -> int is return 0 end
+
+pub fn content_fit_contain()    -> int is return 1 end
+pub fn content_fit_cover()      -> int is return 2 end
+pub fn content_fit_scale_down() -> int is return 3 end
+
+;; GtkSelectionMode (ListBox, FlowBox)
+pub fn selection_mode_none()     -> int is return 0 end
+
+pub fn selection_mode_single()   -> int is return 1 end
+pub fn selection_mode_browse()   -> int is return 2 end
+pub fn selection_mode_multiple() -> int is return 3 end
+
+;; AdwColorScheme
+pub fn color_scheme_default()      -> int is return 0 end
+
+pub fn color_scheme_force_light()  -> int is return 1 end
+pub fn color_scheme_force_dark()   -> int is return 4 end
+
+;; (0.5) ciemny, gdy system nie ma preferencji (AdwColorScheme PREFER_DARK)
+pub fn color_scheme_prefer_dark()   -> int is return 2 end
+
+;; GtkLicense (do okna „O programie”)
+pub fn license_unknown() -> int is return 0 end
+
+pub fn license_gpl_3_0() -> int is return 3 end
+pub fn license_mit()     -> int is return 7 end
+
+;; AdwViewSwitcherPolicy
+pub fn view_switcher_policy_narrow() -> int is return 0 end
+
+pub fn view_switcher_policy_wide()   -> int is return 1 end
+
+;; AdwToastPriority
+pub fn toast_priority_normal() -> int is return 0 end
+
+pub fn toast_priority_high()   -> int is return 1 end
