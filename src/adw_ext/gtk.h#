@@ -1,0 +1,191 @@
+struct ViewStack is
+    pub handle: int
+end
+
+struct ViewSwitcher is
+    pub handle: int
+end
+
+struct ViewSwitcherBar is
+    pub handle: int
+end
+
+struct EntryRow is
+    pub handle: int
+end
+
+struct ExpanderRow is
+    pub handle: int
+end
+
+struct Banner is
+    pub handle: int
+end
+
+struct Dialog is
+    pub handle: int
+end
+
+struct ButtonContent is
+    pub handle: int
+end
+
+struct PrefPage is
+    pub handle: int
+end
+
+pub fn new_view_stack() -> ViewStack is
+    return ViewStack { handle: gtk_ffi::adw_view_stack_new() }
+end
+
+;; Przelacznik widokow do naglowka (`AdwHeaderBar::set_title_widget`).
+pub fn new_view_switcher(stack: ViewStack) -> ViewSwitcher is
+    let h: int = gtk_ffi::adw_view_switcher_new()
+    gtk_ffi::adw_view_switcher_set_stack(h, stack.handle)
+    gtk_ffi::adw_view_switcher_set_policy(h, 1)
+    return ViewSwitcher { handle: h }
+end
+
+;; Dolny pasek przelacznika (waskie okna) — `set_reveal(true)` pokazuje go.
+pub fn new_view_switcher_bar(stack: ViewStack) -> ViewSwitcherBar is
+    let h: int = gtk_ffi::adw_view_switcher_bar_new()
+    gtk_ffi::adw_view_switcher_bar_set_stack(h, stack.handle)
+    return ViewSwitcherBar { handle: h }
+end
+
+;; Wiersz z polem tekstowym (tytul = podpowiedz unoszaca sie nad tekstem).
+pub fn new_entry_row(title: string) -> EntryRow is
+    let h: int = gtk_ffi::adw_entry_row_new()
+    gtk_ffi::adw_preferences_row_set_title(h, title)
+    return EntryRow { handle: h }
+end
+
+;; Wiersz na haslo z ikona „pokaz haslo”.
+pub fn new_password_entry_row(title: string) -> EntryRow is
+    let h: int = gtk_ffi::adw_password_entry_row_new()
+    gtk_ffi::adw_preferences_row_set_title(h, title)
+    return EntryRow { handle: h }
+end
+
+pub fn new_expander_row(title: string, subtitle: string) -> ExpanderRow is
+    let h: int = gtk_ffi::adw_expander_row_new()
+    gtk_ffi::adw_preferences_row_set_title(h, title)
+    if subtitle != "" is gtk_ffi::adw_expander_row_set_subtitle(h, subtitle) end
+    return ExpanderRow { handle: h }
+end
+
+pub fn new_banner(title: string, button_label: string) -> Banner is
+    let h: int = gtk_ffi::adw_banner_new(title)
+    if button_label != "" is gtk_ffi::adw_banner_set_button_label(h, button_label) end
+    return Banner { handle: h }
+end
+
+;; Adaptacyjny dialog libadwaita (nie jest oknem — jest `present`-owany nad oknem rodzica).
+pub fn new_dialog(title: string, width: int, height: int) -> Dialog is
+    let h: int = gtk_ffi::adw_dialog_new()
+    gtk_ffi::adw_dialog_set_title(h, title)
+    if width > 0 is gtk_ffi::adw_dialog_set_content_width(h, width) end
+    if height > 0 is gtk_ffi::adw_dialog_set_content_height(h, height) end
+    return Dialog { handle: h }
+end
+
+;; Zawartosc przycisku: ikona + tekst (`Button::set_child(content.handle)`).
+pub fn new_button_content(icon_name: string, label: string) -> ButtonContent is
+    let h: int = gtk_ffi::adw_button_content_new()
+    if icon_name != "" is gtk_ffi::adw_button_content_set_icon_name(h, icon_name) end
+    gtk_ffi::adw_button_content_set_label(h, label)
+    return ButtonContent { handle: h }
+end
+
+pub fn new_pref_page() -> PrefPage is
+    return PrefPage { handle: gtk_ffi::adw_preferences_page_new() }
+end
+
+;; Przycisk z ikona i tekstem w jednym wywolaniu.
+pub fn new_icon_label_button(icon_name: string, label: string) -> gtk::Button is
+    let b: gtk::Button = gtk::new_button("")
+    let c: ButtonContent = new_button_content(icon_name, label)
+    gtk_ffi::gtk_button_set_child(b.handle, c.handle)
+    return b
+end
+
+;; Toast z priorytetem (np. bledy `toast_priority_high()` wypychaja sie przed zwykle).
+pub fn toast_priority(overlay: gtk::ToastOverlay, message: string, timeout_s: int, priority: int) is
+    let t: int = gtk_ffi::adw_toast_new(message)
+    gtk_ffi::adw_toast_set_timeout(t, timeout_s)
+    gtk_ffi::adw_toast_set_priority(t, priority)
+    gtk_ffi::adw_toast_overlay_add_toast(overlay.handle, t)
+end
+
+impl ViewStack is
+    ;; Dodaje strone z ikona; `name` identyfikuje widok (`set_visible`/`visible`).
+    fn add(self, child: int, name: string, title: string, icon_name: string) is
+        gtk_ffi::adw_view_stack_add_titled_with_icon(self.handle, child, name, title, icon_name)
+    end
+    fn set_visible(self, name: string) is gtk_ffi::adw_view_stack_set_visible_child_name(self.handle, name) end
+    fn visible(self) -> string is return gtk_ffi::adw_view_stack_get_visible_child_name(self.handle) end
+end
+
+impl ViewSwitcherBar is
+    fn set_reveal(self, reveal: bool) is gtk_ffi::adw_view_switcher_bar_set_reveal(self.handle, gtk::b2i(reveal)) end
+end
+
+impl EntryRow is
+    fn text(self) -> string is return gtk_ffi::gtk_editable_get_text(self.handle) end
+    fn set_text(self, text: string) is gtk_ffi::gtk_editable_set_text(self.handle, text) end
+    fn add_prefix(self, w: int) is gtk_ffi::adw_entry_row_add_prefix(self.handle, w) end
+    fn add_suffix(self, w: int) is gtk_ffi::adw_entry_row_add_suffix(self.handle, w) end
+    fn set_title(self, text: string) is gtk_ffi::adw_preferences_row_set_title(self.handle, text) end
+    fn grab_focus(self) is gtk_ffi::gtk_widget_grab_focus(self.handle) end
+end
+
+impl ExpanderRow is
+    fn add_row(self, child: int) is gtk_ffi::adw_expander_row_add_row(self.handle, child) end
+    fn add_prefix(self, w: int) is gtk_ffi::adw_expander_row_add_prefix(self.handle, w) end
+    fn add_suffix(self, w: int) is gtk_ffi::adw_expander_row_add_suffix(self.handle, w) end
+    fn set_subtitle(self, text: string) is gtk_ffi::adw_expander_row_set_subtitle(self.handle, text) end
+    fn set_expanded(self, expanded: bool) is gtk_ffi::adw_expander_row_set_expanded(self.handle, gtk::b2i(expanded)) end
+    fn is_expanded(self) -> bool is return gtk::c_int(gtk_ffi::adw_expander_row_get_expanded(self.handle)) != 0 end
+end
+
+impl Banner is
+    fn set_title(self, text: string) is gtk_ffi::adw_banner_set_title(self.handle, text) end
+    fn set_revealed(self, revealed: bool) is gtk_ffi::adw_banner_set_revealed(self.handle, gtk::b2i(revealed)) end
+end
+
+impl Dialog is
+    fn set_title(self, text: string) is gtk_ffi::adw_dialog_set_title(self.handle, text) end
+    fn set_child(self, child: int) is gtk_ffi::adw_dialog_set_child(self.handle, child) end
+    fn set_follows_content_size(self, follows: bool) is gtk_ffi::adw_dialog_set_follows_content_size(self.handle, gtk::b2i(follows)) end
+    fn present(self, parent: gtk::Window) is gtk_ffi::adw_dialog_present(self.handle, parent.handle) end
+    fn close(self) is gtk_ffi::adw_dialog_close(self.handle) end
+end
+
+impl ButtonContent is
+    fn set_label(self, text: string) is gtk_ffi::adw_button_content_set_label(self.handle, text) end
+    fn set_icon_name(self, icon_name: string) is gtk_ffi::adw_button_content_set_icon_name(self.handle, icon_name) end
+end
+
+impl PrefPage is
+    fn add(self, group: int) is gtk_ffi::adw_preferences_page_add(self.handle, group) end
+end
+
+;; Dodatki do istniejacych typow (0.5) — osobne bloki `impl`, zeby nie ruszac starych.
+impl gtk_PrefGroup is
+    fn remove(self, row: int) is gtk_ffi::adw_preferences_group_remove(self.handle, row) end
+end
+
+impl gtk_ActionRow is
+    fn set_subtitle_lines(self, lines: int) is gtk_ffi::adw_action_row_set_subtitle_lines(self.handle, lines) end
+    fn set_use_markup(self, use_markup: bool) is gtk_ffi::adw_preferences_row_set_use_markup(self.handle, gtk::b2i(use_markup)) end
+end
+
+impl gtk_App is
+    ;; (0.5) Enter w `AdwEntryRow` / `AdwPasswordEntryRow` (prawdziwy sygnal "entry-activated").
+    fn on_entry_row_activate(self, row: EntryRow, cb: fn() -> void) is
+        self.submit_widget.push(row.handle)
+        self.submit_prev.push(0)
+        self.submit_cb.push(cb)
+        self.submit_sig.push(gtk_ffi::g_signal_connect_data(row.handle, "entry-activated", fn_addr(gtk::cb_activate), self.sig_q, 0, 0))
+    end
+end
