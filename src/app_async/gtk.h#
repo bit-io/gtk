@@ -1,0 +1,107 @@
+impl gtk_App is
+    ;; (0.4) Odbiera zdarzenia z sygnalow GObject (kolejka `sig_q`) i woła domkniecia.
+    fn drain_signals(self) is
+        let mut guard: int = 0
+        while gtk::c_int(gtk_ffi::g_queue_is_empty(self.sig_q)) == 0 && guard < 4096 is
+            guard += 1
+            let kind: int = gtk_ffi::g_queue_pop_head(self.sig_q)
+            let w: int = gtk_ffi::g_queue_pop_head(self.sig_q)
+            let mut i: int = 0
+            if kind == 1 is
+                while i < self.btn_widget.len() is
+                    if self.btn_widget[i] == w is
+                        let cb = self.btn_cb[i]
+                        cb()
+                        i = self.btn_widget.len()
+                    end
+                    i += 1
+                end
+            elsif kind == 2 is
+                while i < self.submit_widget.len() is
+                    if self.submit_widget[i] == w is
+                        let cb = self.submit_cb[i]
+                        cb()
+                        i = self.submit_widget.len()
+                    end
+                    i += 1
+                end
+            end
+        end
+    end
+
+    ;; (0.4) Konczy zakonczone okna wyboru pliku i woła ich domkniecia ("" = anulowano).
+    fn drain_files(self) is
+        let mut guard: int = 0
+        while gtk::c_int(gtk_ffi::g_queue_is_empty(self.file_q)) == 0 && guard < 64 is
+            guard += 1
+            let dlg: int = gtk_ffi::g_queue_pop_head(self.file_q)
+            let result: int = gtk_ffi::g_queue_pop_head(self.file_q)
+            let mut idx: int = -1
+            let mut i: int = 0
+            while i < self.file_dlg.len() is
+                if self.file_dlg[i] == dlg is idx = i end
+                i += 1
+            end
+            let mut path: string = ""
+            let mut file: int = 0
+            if idx >= 0 is
+                let kind: int = self.file_kind[idx]
+                if kind == 0 is
+                    file = gtk_ffi::gtk_file_dialog_save_finish(dlg, result, 0)
+                elsif kind == 1 is
+                    file = gtk_ffi::gtk_file_dialog_open_finish(dlg, result, 0)
+                else is
+                    file = gtk_ffi::gtk_file_dialog_select_folder_finish(dlg, result, 0)
+                end
+            end
+            if file != 0 is
+                path = gtk_ffi::g_file_get_path(file)
+                gtk_ffi::g_object_unref(file)
+            end
+            gtk_ffi::g_object_unref(result)
+            gtk_ffi::g_object_unref(dlg)
+            if idx >= 0 is
+                self.file_dlg[idx] = 0
+                let cb = self.file_cb[idx]
+                cb(path)
+            end
+        end
+    end
+
+    fn file_dialog(self, parent: gtk::Window, kind: int, title: string, accept: string, initial_name: string, initial_folder: string, cb: fn(string) -> void) is
+        let dlg: int = gtk_ffi::gtk_file_dialog_new()
+        gtk_ffi::gtk_file_dialog_set_title(dlg, title)
+        if accept != "" is gtk_ffi::gtk_file_dialog_set_accept_label(dlg, accept) end
+        if initial_name != "" is gtk_ffi::gtk_file_dialog_set_initial_name(dlg, initial_name) end
+        if initial_folder != "" is
+            let f: int = gtk_ffi::g_file_new_for_path(initial_folder)
+            gtk_ffi::gtk_file_dialog_set_initial_folder(dlg, f)
+            gtk_ffi::g_object_unref(f)
+        end
+        self.file_dlg.push(dlg)
+        self.file_kind.push(kind)
+        self.file_cb.push(cb)
+        if kind == 0 is
+            gtk_ffi::gtk_file_dialog_save(dlg, parent.handle, 0, fn_addr(gtk::cb_file_done), self.file_q)
+        elsif kind == 1 is
+            gtk_ffi::gtk_file_dialog_open(dlg, parent.handle, 0, fn_addr(gtk::cb_file_done), self.file_q)
+        else is
+            gtk_ffi::gtk_file_dialog_select_folder(dlg, parent.handle, 0, fn_addr(gtk::cb_file_done), self.file_q)
+        end
+    end
+
+    ;; (0.4) Natywne okno „Zapisz jako”. `cb` dostaje pelna sciezke albo "" (anulowano).
+    fn save_file(self, parent: gtk::Window, title: string, initial_name: string, initial_folder: string, cb: fn(string) -> void) is
+        self.file_dialog(parent, 0, title, "Zapisz", initial_name, initial_folder, cb)
+    end
+
+    ;; (0.4) Natywne okno „Otworz plik”.
+    fn open_file(self, parent: gtk::Window, title: string, initial_folder: string, cb: fn(string) -> void) is
+        self.file_dialog(parent, 1, title, "Otwórz", "", initial_folder, cb)
+    end
+
+    ;; (0.4) Natywne okno wyboru katalogu.
+    fn select_folder(self, parent: gtk::Window, title: string, initial_folder: string, cb: fn(string) -> void) is
+        self.file_dialog(parent, 2, title, "Wybierz", "", initial_folder, cb)
+    end
+end
