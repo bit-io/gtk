@@ -1,0 +1,47 @@
+extern static [c, "gtk4"] is
+    fn gtk_string_list_new(strings: int) -> int          ;; wywolaj z 0 (NULL) -> pusta lista
+    fn gtk_string_list_append(list: int, item: string)
+    fn gtk_string_list_remove(list: int, position: int)
+    fn gtk_drop_down_new(model: int, expression: int) -> int  ;; expression: 0 (NULL) = bez wlasnego wyrazenia wyszukiwania
+    fn gtk_drop_down_set_selected(dropdown: int, position: int)
+    fn gtk_drop_down_get_selected(dropdown: int) -> int   ;; 4294967295 (GTK_INVALID_LIST_POSITION) = brak zaznaczenia
+end
+
+;; ── GTK4 — GtkListBox ─────────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_list_box_new() -> int
+    fn gtk_list_box_append(list_box: int, child: int)
+    fn gtk_list_box_remove(list_box: int, child: int)
+    fn gtk_list_box_set_selection_mode(list_box: int, mode: int)  ;; 0=none 1=single 2=browse 3=multiple
+    fn gtk_list_box_get_selected_row(list_box: int) -> int        ;; 0 = brak zaznaczenia
+    fn gtk_list_box_row_get_index(row: int) -> int                ;; -1 gdy nieprzypisany
+end
+
+;; ── GtkListBox — dodatki ──────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_list_box_select_row(list_box: int, row: int)
+    fn gtk_list_box_unselect_all(list_box: int)
+    fn gtk_list_box_get_row_at_index(list_box: int, index: int) -> int
+    fn gtk_list_box_insert(list_box: int, child: int, position: int)
+    fn gtk_list_box_prepend(list_box: int, child: int)
+    fn gtk_list_box_set_activate_on_single_click(list_box: int, single: int)
+end
+
+;; ── GtkDropDown / GtkStringList — dodatki ─────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_drop_down_set_enable_search(dropdown: int, enable_search: int)
+    fn gtk_string_list_get_string(list: int, position: int) -> string
+end
+
+extern static [c, "gio-2.0"] is
+    fn g_list_model_get_n_items(list: int) -> int
+end
+
+;; GtkWidget / GtkEditable / GtkListBox — dodatki 0.5
+
+extern static [c, "gtk4"] is
+    fn gtk_list_box_set_placeholder(list_box: int, placeholder: int)
+end
