@@ -1,0 +1,255 @@
+impl gtk_App is
+    ;; Rejestruje domkniecie wolane przy wykryciu klikniecia przycisku
+    ;; (od 0.4: prawdziwy sygnal GObject "clicked", dostarczany przez kolejke w `poll`).
+    fn on_click(self, button: gtk::Button, cb: fn() -> void) is
+        ;; (0.4) prawdziwy sygnal "clicked" (takze klawiatura: spacja / Enter)
+        let sig: int = gtk_ffi::g_signal_connect_data(button.handle, "clicked", fn_addr(gtk::cb_clicked), self.sig_q, 0, 0)
+        ;; (0.5) ponowne uzycie slotu zwolnionego przez `unwatch` — aplikacje, ktore
+        ;; przebudowuja liste wierszy z przyciskami (np. co 10 s), nie powiekszaja juz
+        ;; w nieskonczonosc tablic przegladanych w kazdej iteracji petli.
+        let mut slot: int = -1
+        let mut i: int = 0
+        while i < self.btn_widget.len() is
+            if self.btn_widget[i] == 0 && slot < 0 is slot = i end
+            i += 1
+        end
+        if slot >= 0 is
+            self.btn_widget[slot] = button.handle
+            self.btn_prev[slot] = 0
+            self.btn_cb[slot] = cb
+            self.btn_sig[slot] = sig
+        else is
+            self.btn_widget.push(button.handle)
+            self.btn_prev.push(0)
+            self.btn_cb.push(cb)
+            self.btn_sig.push(sig)
+        end
+    end
+
+    ;; Jak `on_click`, ale wolane w chwili WCISNIECIA (zbocze puszczenie→wcisniecie),
+    ;; a nie puszczenia przycisku. Przydatne np. do „przytrzymaj, zeby ...”.
+    fn on_press(self, button: gtk::Button, cb: fn() -> void) is
+        self.press_widget.push(button.handle)
+        self.press_prev.push(0)
+        self.press_cb.push(cb)
+    end
+
+    ;; Rejestruje domkniecie wolane przy kazdej zmianie stanu checkboksa;
+    ;; dostaje nowy stan (`true`/`false`) jako argument.
+    fn on_toggle(self, check: gtk::CheckButton, cb: fn(bool) -> void) is
+        self.chk_widget.push(check.handle)
+        self.chk_prev.push(gtk_ffi::gtk_check_button_get_active(check.handle))
+        self.chk_cb.push(cb)
+    end
+
+    ;; Jak `on_toggle`, ale dla `ToggleButton` (takze przyciskow w grupie „radio”).
+    fn on_toggle_button(self, toggle: gtk::ToggleButton, cb: fn(bool) -> void) is
+        self.tgl_widget.push(toggle.handle)
+        self.tgl_prev.push(gtk_ffi::gtk_toggle_button_get_active(toggle.handle))
+        self.tgl_cb.push(cb)
+    end
+
+    ;; Rejestruje domkniecie wolane przy przelaczeniu `Switch`; dostaje nowy stan.
+    fn on_switch(self, sw: gtk::Switch, cb: fn(bool) -> void) is
+        self.swt_widget.push(sw.handle)
+        self.swt_prev.push(gtk_ffi::gtk_switch_get_active(sw.handle))
+        self.swt_cb.push(cb)
+    end
+
+    ;; Rejestruje domkniecie wolane przy kazdej zmianie tekstu w polu
+    ;; (dostaje nowa tresc jako argument). Dla `PasswordEntry`/`SearchEntry` uzyj `.as_entry()`.
+    fn on_change(self, entry: gtk::Entry, cb: fn(string) -> void) is
+        self.entry_widget.push(entry.handle)
+        self.entry_prev.push(gtk_ffi::gtk_editable_get_text(entry.handle))
+        self.entry_cb.push(cb)
+    end
+
+    ;; Rejestruje domkniecie wolane przy kazdej zmianie stanu "najechania
+    ;; myszka" (flaga GTK_STATE_FLAG_PRELIGHT) na dowolnym widgecie —
+    ;; dostaje nowy stan (`true` = kursor nad widgetem) jako argument.
+    ;; W 100% wiarygodne (zwykly odczyt stanu, tak jak `on_toggle`).
+    fn on_hover(self, handle: int, cb: fn(bool) -> void) is
+        self.hover_widget.push(handle)
+        self.hover_prev.push(0)
+        self.hover_cb.push(cb)
+    end
+
+    ;; Wolane, gdy fokus klawiatury wchodzi do widgetu (lub jego dzieci) i gdy go opuszcza
+    ;; (`true` = widget ma fokus). Dziala dla dowolnego widgetu.
+    fn on_focus(self, handle: int, cb: fn(bool) -> void) is
+        self.focus_widget.push(handle)
+        self.focus_prev.push(0)
+        self.focus_cb.push(cb)
+    end
+
+    ;; Przyblizone "zatwierdzenie" pola tekstowego przez utrate fokusu
+    ;; (zbocze flagi GTK_STATE_FLAG_FOCUS_WITHIN wysoko→nisko, czyli
+    ;; "uzytkownik przeszedl gdzie indziej"). To NIE jest realny sygnal
+    ;; "activate" (Enter) — ten wymaga GtkEventController + sygnalu, wiec
+    ;; C-owego callbacku, poza zakresem biblioteki w 100% H#. `on_submit`
+    ;; to najblizsze uczciwe przyblizenie osiagalne samym pollingiem.
+    fn on_submit(self, entry: gtk::Entry, cb: fn() -> void) is
+        self.submit_widget.push(entry.handle)
+        self.submit_prev.push(0)
+        self.submit_cb.push(cb)
+        ;; (0.4) prawdziwy sygnal "activate" (Enter w polu)
+        self.submit_sig.push(gtk_ffi::g_signal_connect_data(entry.handle, "activate", fn_addr(gtk::cb_activate), self.sig_q, 0, 0))
+    end
+
+    ;; Rejestruje domkniecie wolane przy kazdej zmianie zaznaczonego wiersza
+    ;; w `ListBox`; dostaje nowy indeks (0-based, `-1` = brak zaznaczenia).
+    ;; W 100% wiarygodne.
+    fn on_selection_change(self, list_box: gtk::ListBox, cb: fn(int) -> void) is
+        self.listbox_widget.push(list_box.handle)
+        self.listbox_prev.push(list_box.selected_index())
+        self.listbox_cb.push(cb)
+    end
+
+    ;; Jak wyzej, ale dla `DropDown`.
+    fn on_dropdown_change(self, dropdown: gtk::DropDown, cb: fn(int) -> void) is
+        self.dropdown_widget.push(dropdown.handle)
+        self.dropdown_prev.push(dropdown.selected())
+        self.dropdown_cb.push(cb)
+    end
+
+    ;; Rejestruje domkniecie wolane przy kazdej zmianie widocznej "strony"
+    ;; `Stack`; dostaje nazwe nowej strony. W 100% wiarygodne.
+    fn on_view_change(self, stack: gtk::Stack, cb: fn(string) -> void) is
+        self.stack_widget.push(stack.handle)
+        self.stack_prev.push(stack.visible())
+        self.stack_cb.push(cb)
+    end
+
+    ;; Rejestruje domkniecie wolane przy zmianie aktywnej zakladki `Notebook`;
+    ;; dostaje jej indeks (0-based). W 100% wiarygodne.
+    fn on_page_change(self, notebook: gtk::Notebook, cb: fn(int) -> void) is
+        self.nb_widget.push(notebook.handle)
+        self.nb_prev.push(notebook.current())
+        self.nb_cb.push(cb)
+    end
+
+    ;; Najlepsze mozliwe (bez C) przyblizenie sygnalu `close-request`:
+    ;; trzyma dodatkowa referencje (`g_object_ref`) na oknie, zeby bylo
+    ;; bezpiecznie odpytywac jego stan `mapped` nawet po tym, jak domyslny
+    ;; handler GTK zniszczy widget po kliknieciu w „X”. Gdy `mapped`
+    ;; spadnie z 1 na 0, wolane jest `cb`. Jesli chcesz zeby to jednoczesnie
+    ;; konczylo `run()`, wywolaj w `cb` po prostu `app.quit()`.
+    ;; `unwatch(window.handle)` zwalnia te dodatkowa referencje.
+    fn on_window_close(self, window: gtk::Window, cb: fn() -> void) is
+        gtk_ffi::g_object_ref(window.handle)
+        self.win_widget.push(window.handle)
+        self.win_prev.push(1)
+        self.win_cb.push(cb)
+    end
+
+    ;; Wolane, gdy okno zyskuje (`true`) lub traci (`false`) aktywnosc (fokus okna).
+    fn on_window_active(self, window: gtk::Window, cb: fn(bool) -> void) is
+        self.wact_widget.push(window.handle)
+        self.wact_prev.push(gtk_ffi::gtk_window_is_active(window.handle))
+        self.wact_cb.push(cb)
+    end
+
+    ;; Wolane przy kazdej zmianie rozmiaru widgetu: dostaje (szerokosc, wysokosc).
+    ;; Pierwsze wywolanie nastepuje, gdy widget dostanie swoj pierwszy rozmiar.
+    fn on_resize(self, handle: int, cb: fn(int, int) -> void) is
+        self.resize_widget.push(handle)
+        self.resize_prev.push(0)
+        self.resize_cb.push(cb)
+    end
+
+    ;; Rejestruje domkniecie wolane przy kazdej zmianie wartosci `SpinButton`;
+    ;; dostaje nowa wartosc jako argument. W 100% wiarygodne.
+    fn on_value_change(self, spin: gtk::SpinButton, cb: fn(f64) -> void) is
+        self.spin_widget.push(spin.handle)
+        self.spin_prev.push(spin.value())
+        self.spin_cb.push(cb)
+    end
+
+    ;; Rejestruje domkniecie wolane przy kazdej zmianie wartosci `Scale`;
+    ;; dostaje nowa wartosc jako argument. W 100% wiarygodne.
+    fn on_scale_change(self, scale: gtk::Scale, cb: fn(f64) -> void) is
+        self.scale_widget.push(scale.handle)
+        self.scale_prev.push(scale.value())
+        self.scale_cb.push(cb)
+    end
+
+    ;; Wolane przy przesunieciu separatora `Paned`; dostaje nowa pozycje (px).
+    fn on_paned_move(self, paned: gtk::Paned, cb: fn(int) -> void) is
+        self.paned_widget.push(paned.handle)
+        self.paned_prev.push(paned.position())
+        self.paned_cb.push(cb)
+    end
+
+    ;; Wolane przy rozwinieciu/zwinieciu `Expander`; dostaje nowy stan (`true` = rozwiniety).
+    fn on_expand(self, expander: gtk::Expander, cb: fn(bool) -> void) is
+        self.expander_widget.push(expander.handle)
+        self.expander_prev.push(gtk_ffi::gtk_expander_get_expanded(expander.handle))
+        self.expander_cb.push(cb)
+    end
+
+    ;; Wolane, gdy zmieni sie stan „odsloniecia” `Revealer` (takze z kodu).
+    fn on_reveal(self, revealer: gtk::Revealer, cb: fn(bool) -> void) is
+        self.reveal_widget.push(revealer.handle)
+        self.reveal_prev.push(gtk_ffi::gtk_revealer_get_reveal_child(revealer.handle))
+        self.reveal_cb.push(cb)
+    end
+
+    ;; Wolane po kazdej zmianie zawartosci `TextView` (dostaje caly tekst).
+    ;; Uzywa flagi „modified” bufora (kazda edycja ja ustawia), a `App` zeruje
+    ;; ja po wykryciu — dzieki temu wykrywa tez zamiane tekstu na rrownie dlugi.
+    ;; Uwaga: kazde wywolanie czyta tekst (patrz README: przeciek `get_text`).
+    fn on_text_change(self, view: gtk::TextView, cb: fn(string) -> void) is
+        self.tview_widget.push(view.handle)
+        self.tview_prev.push(0)
+        self.tview_cb.push(cb)
+    end
+
+    ;; Wolane przy zmianie zaznaczonej daty w `Calendar`; dostaje (rok, miesiac 1..12, dzien).
+    fn on_date_change(self, calendar: gtk::Calendar, cb: fn(int, int, int) -> void) is
+        self.cal_widget.push(calendar.handle)
+        self.cal_prev.push(gtk::calendar_packed(calendar.handle))
+        self.cal_cb.push(cb)
+    end
+
+    ;; Wola `cb` co `interval_ms` milisekund (pierwszy raz po jednym okresie).
+    ;; Zwraca identyfikator timera dla `cancel`. Rozdzielczosc ~4 ms (petla
+    ;; `run()` przechodzi w tryb nieblokujacy, gdy istnieje jakikolwiek timer).
+    fn every(self, interval_ms: int, cb: fn() -> void) -> int is
+        let now: int = gtk_ffi::g_get_monotonic_time() / 1000
+        self.tmr_interval.push(interval_ms)
+        self.tmr_next.push(now + interval_ms)
+        self.tmr_repeat.push(1)
+        self.tmr_active.push(1)
+        self.tmr_cb.push(cb)
+        return self.tmr_cb.len() - 1
+    end
+
+    ;; Wola `cb` dokladnie raz, po `delay_ms` milisekundach. Zwraca id dla `cancel`.
+    fn after(self, delay_ms: int, cb: fn() -> void) -> int is
+        let now: int = gtk_ffi::g_get_monotonic_time() / 1000
+        self.tmr_interval.push(delay_ms)
+        self.tmr_next.push(now + delay_ms)
+        self.tmr_repeat.push(0)
+        self.tmr_active.push(1)
+        self.tmr_cb.push(cb)
+        return self.tmr_cb.len() - 1
+    end
+
+    ;; Zatrzymuje timer o danym id (z `every` / `after`). Nieznane id jest ignorowane.
+    fn cancel(self, id: int) is
+        if id >= 0 && id < self.tmr_cb.len() is
+            self.tmr_active[id] = 0
+        end
+    end
+
+    ;; Ile timerow jeszcze dziala.
+    fn active_timers(self) -> int is
+        let mut n: int = 0
+        let mut i: int = 0
+        while i < self.tmr_active.len() is
+            if self.tmr_active[i] == 1 is n += 1 end
+            i += 1
+        end
+        return n
+    end
+end
