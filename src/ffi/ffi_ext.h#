@@ -1,0 +1,101 @@
+extern static [c, "glib-2.0"] is
+;; GLib: tablica napisow z jednego napisu (np. etykiety przyciskow oddzielone "|").
+    fn g_strsplit(text: string, delimiter: string, max_tokens: int) -> int
+    fn g_strfreev(str_array: int)
+end
+
+extern static [c, "gtk4"] is
+;; AlertDialog z przyciskami (asynchroniczny wybor) — App::confirm
+    fn gtk_alert_dialog_set_buttons(dialog: int, labels: int)
+    fn gtk_alert_dialog_set_default_button(dialog: int, button: int)
+    fn gtk_alert_dialog_set_cancel_button(dialog: int, button: int)
+    fn gtk_alert_dialog_choose(dialog: int, parent: int, cancellable: int, callback: int, user_data: int)
+    fn gtk_alert_dialog_choose_finish(dialog: int, result: int, error: int) -> int
+    ;; Schowek: asynchroniczny odczyt tekstu — App::read_clipboard (NULL => "")
+    fn gdk_clipboard_read_text_async(clipboard: int, cancellable: int, callback: int, user_data: int)
+    fn gdk_clipboard_read_text_finish(clipboard: int, result: int, error: int) -> string
+    ;; CheckButton: etykieta, grupy (radio), stan posredni
+    fn gtk_check_button_set_label(button: int, label: string)
+    fn gtk_check_button_get_label(button: int) -> string
+    fn gtk_check_button_set_group(button: int, group: int)
+    fn gtk_check_button_set_inconsistent(button: int, inconsistent: int)
+    ;; Adjustment / przewijanie
+    fn gtk_scrolled_window_get_vadjustment(window: int) -> int
+    fn gtk_scrolled_window_get_hadjustment(window: int) -> int
+    fn gtk_adjustment_get_value(adjustment: int) -> f64
+    fn gtk_adjustment_set_value(adjustment: int, value: f64)
+    fn gtk_adjustment_get_upper(adjustment: int) -> f64
+    fn gtk_adjustment_get_lower(adjustment: int) -> f64
+    fn gtk_adjustment_get_page_size(adjustment: int) -> f64
+    ;; Grid
+    fn gtk_grid_attach_next_to(grid: int, child: int, sibling: int, side: int, width: int, height: int)
+    fn gtk_grid_insert_row(grid: int, position: int)
+    fn gtk_grid_insert_column(grid: int, position: int)
+    fn gtk_grid_remove_row(grid: int, position: int)
+    fn gtk_grid_remove_column(grid: int, position: int)
+    ;; Notebook / Paned / Stack / Revealer
+    fn gtk_notebook_set_show_tabs(notebook: int, show: int)
+    fn gtk_paned_set_resize_start_child(paned: int, resize: int)
+    fn gtk_paned_set_resize_end_child(paned: int, resize: int)
+    fn gtk_paned_set_shrink_start_child(paned: int, shrink: int)
+    fn gtk_paned_set_shrink_end_child(paned: int, shrink: int)
+    fn gtk_stack_set_hhomogeneous(stack: int, homogeneous: int)
+    fn gtk_stack_set_vhomogeneous(stack: int, homogeneous: int)
+    fn gtk_stack_set_interpolate_size(stack: int, interpolate: int)
+    fn gtk_revealer_get_child_revealed(revealer: int) -> int
+    ;; Label / Entry / ProgressBar / LevelBar
+    fn gtk_label_set_use_markup(label: int, use_markup: int)
+    fn gtk_label_set_single_line_mode(label: int, single: int)
+    fn gtk_label_set_yalign(label: int, yalign: f64)
+    fn gtk_entry_set_activates_default(entry: int, setting: int)
+    fn gtk_progress_bar_set_inverted(bar: int, inverted: int)
+    fn gtk_level_bar_set_min_value(bar: int, value: f64)
+    fn gtk_level_bar_set_max_value(bar: int, value: f64)
+    ;; GtkWidget
+    fn gtk_widget_get_scale_factor(widget: int) -> int
+    fn gtk_widget_activate(widget: int) -> int
+    fn gtk_widget_set_tooltip_markup(widget: int, markup: string)
+    fn gtk_widget_is_ancestor(widget: int, ancestor: int) -> int
+    fn gtk_widget_set_receives_default(widget: int, receives: int)
+    ;; GtkWindow
+    fn gtk_window_set_focus(window: int, focus: int)
+    ;; GtkTextView / GtkTextBuffer
+    fn gtk_text_buffer_set_enable_undo(buffer: int, enable: int)
+    fn gtk_text_buffer_undo(buffer: int)
+    fn gtk_text_buffer_redo(buffer: int)
+    fn gtk_text_buffer_get_can_undo(buffer: int) -> int
+    fn gtk_text_buffer_get_can_redo(buffer: int) -> int
+    fn gtk_text_view_set_left_margin(view: int, margin: int)
+    fn gtk_text_view_set_right_margin(view: int, margin: int)
+    fn gtk_text_view_set_top_margin(view: int, margin: int)
+    fn gtk_text_view_set_bottom_margin(view: int, margin: int)
+    fn gtk_text_view_set_pixels_above_lines(view: int, pixels: int)
+    ;; GtkStringList / ListBox
+    fn gtk_string_list_splice(list: int, position: int, n_removals: int, additions: int)
+    fn gtk_list_box_set_show_separators(box: int, show: int)
+    fn gtk_list_box_select_all(box: int)
+    ;; Nowe widgety: SearchBar, Fixed, WindowHandle
+    fn gtk_search_bar_new() -> int
+    fn gtk_search_bar_set_child(bar: int, child: int)
+    fn gtk_search_bar_set_search_mode(bar: int, mode: int)
+    fn gtk_search_bar_get_search_mode(bar: int) -> int
+    fn gtk_search_bar_connect_entry(bar: int, entry: int)
+    fn gtk_search_bar_set_show_close_button(bar: int, visible: int)
+    fn gtk_fixed_new() -> int
+    fn gtk_fixed_put(fixed: int, widget: int, x: f64, y: f64)
+    fn gtk_fixed_move(fixed: int, widget: int, x: f64, y: f64)
+    fn gtk_window_handle_new() -> int
+    fn gtk_window_handle_set_child(handle: int, child: int)
+end
+
+extern static [c, "adwaita-1"] is
+;; AdwSwitchRow / AdwComboRow / AdwSpinRow / AdwAvatar (libadwaita >= 1.4)
+    fn adw_spin_row_new_with_range(min: f64, max: f64, step: f64) -> int
+    fn adw_spin_row_get_value(row: int) -> f64
+    fn adw_spin_row_set_value(row: int, value: f64)
+    fn adw_avatar_new(size: int, text: string, show_initials: int) -> int
+    fn adw_avatar_set_text(avatar: int, text: string)
+    fn adw_avatar_set_show_initials(avatar: int, show: int)
+    fn adw_avatar_set_size(avatar: int, size: int)
+    fn adw_banner_get_revealed(banner: int) -> int
+end
