@@ -1,0 +1,186 @@
+struct App is
+    pub btn_widget: [int]
+    pub btn_prev:   [int]
+    pub btn_cb:     [fn() -> void]
+
+    pub press_widget: [int]
+    pub press_prev:   [int]
+    pub press_cb:     [fn() -> void]
+
+    pub chk_widget: [int]
+    pub chk_prev:   [int]
+    pub chk_cb:     [fn(bool) -> void]
+
+    pub tgl_widget: [int]
+    pub tgl_prev:   [int]
+    pub tgl_cb:     [fn(bool) -> void]
+
+    pub swt_widget: [int]
+    pub swt_prev:   [int]
+    pub swt_cb:     [fn(bool) -> void]
+
+    pub entry_widget: [int]
+    pub entry_prev:   [string]
+    pub entry_cb:     [fn(string) -> void]
+
+    pub hover_widget: [int]
+    pub hover_prev:   [int]
+    pub hover_cb:     [fn(bool) -> void]
+
+    pub focus_widget: [int]
+    pub focus_prev:   [int]
+    pub focus_cb:     [fn(bool) -> void]
+
+    pub submit_widget: [int]
+    pub submit_prev:   [int]
+    pub submit_cb:     [fn() -> void]
+
+    pub listbox_widget: [int]
+    pub listbox_prev:   [int]
+    pub listbox_cb:     [fn(int) -> void]
+
+    pub dropdown_widget: [int]
+    pub dropdown_prev:   [int]
+    pub dropdown_cb:     [fn(int) -> void]
+
+    pub stack_widget: [int]
+    pub stack_prev:   [string]
+    pub stack_cb:     [fn(string) -> void]
+
+    pub nb_widget: [int]
+    pub nb_prev:   [int]
+    pub nb_cb:     [fn(int) -> void]
+
+    pub win_widget: [int]
+    pub win_prev:   [int]
+    pub win_cb:     [fn() -> void]
+
+    pub wact_widget: [int]
+    pub wact_prev:   [int]
+    pub wact_cb:     [fn(bool) -> void]
+
+    pub resize_widget: [int]
+    pub resize_prev:   [int]
+    pub resize_cb:     [fn(int, int) -> void]
+
+    pub spin_widget: [int]
+    pub spin_prev:   [f64]
+    pub spin_cb:     [fn(f64) -> void]
+
+    pub scale_widget: [int]
+    pub scale_prev:   [f64]
+    pub scale_cb:     [fn(f64) -> void]
+
+    pub paned_widget: [int]
+    pub paned_prev:   [int]
+    pub paned_cb:     [fn(int) -> void]
+
+    pub expander_widget: [int]
+    pub expander_prev:   [int]
+    pub expander_cb:     [fn(bool) -> void]
+
+    pub reveal_widget: [int]
+    pub reveal_prev:   [int]
+    pub reveal_cb:     [fn(bool) -> void]
+
+    pub tview_widget: [int]
+    pub tview_prev:   [int]
+    pub tview_cb:     [fn(string) -> void]
+
+    pub cal_widget: [int]
+    pub cal_prev:   [int]
+    pub cal_cb:     [fn(int, int, int) -> void]
+
+    pub tmr_interval: [int]
+    pub tmr_next:     [int]
+    pub tmr_repeat:   [int]
+    pub tmr_active:   [int]
+    pub tmr_cb:       [fn() -> void]
+
+    ;; (0.4) prawdziwe sygnaly GObject: callbacki wrzucaja (rodzaj, widget) do kolejki GLib
+    pub sig_q:       int
+    pub btn_sig:     [int]
+    pub submit_sig:  [int]
+
+    ;; (0.4) asynchroniczne okna wyboru pliku (GtkFileDialog)
+    pub file_q:      int
+    pub file_dlg:    [int]
+    pub file_kind:   [int]
+    pub file_cb:     [fn(string) -> void]
+
+    ;; (0.6) confirm() — okno z przyciskami; odczyt schowka; wiersze libadwaita
+    pub ask_q:       int
+    pub ask_dlg:     [int]
+    pub ask_cb:      [fn(int) -> void]
+    pub clip_q:      int
+    pub clip_src:    [int]
+    pub clip_cb:     [fn(string) -> void]
+    pub swr_widget:  [int]
+    pub swr_prev:    [int]
+    pub swr_cb:      [fn(bool) -> void]
+    pub cmr_widget:  [int]
+    pub cmr_prev:    [int]
+    pub cmr_cb:      [fn(int) -> void]
+
+    pub running:      bool
+end
+
+;; Callbacki C (0.4) — zwykle funkcje, ich nazwa uzyta jako wartosc to wskaznik C.
+;; Wolane przez GLib w glownym watku. Tylko zapisuja zdarzenie w kolejce; zwracaja 0
+;; (gboolean FALSE — dla `close-request` oznacza „nie blokuj domyslnej obslugi”).
+fn cb_clicked(widget: int, q: int) -> int is
+    gtk_ffi::g_queue_push_tail(q, 1)
+    gtk_ffi::g_queue_push_tail(q, widget)
+    return 0
+end
+
+fn cb_activate(widget: int, q: int) -> int is
+    gtk_ffi::g_queue_push_tail(q, 2)
+    gtk_ffi::g_queue_push_tail(q, widget)
+    return 0
+end
+
+;; GAsyncReadyCallback(source_object, GAsyncResult*, user_data) — result trzymamy (ref)
+;; do czasu wywolania `*_finish` w `App::poll`.
+fn cb_file_done(source: int, result: int, q: int) -> int is
+    gtk_ffi::g_object_ref(result)
+    gtk_ffi::g_queue_push_tail(q, source)
+    gtk_ffi::g_queue_push_tail(q, result)
+    return 0
+end
+
+pub fn new_app() -> App is
+    return App {
+        btn_widget: [], btn_prev: [], btn_cb: [],
+        press_widget: [], press_prev: [], press_cb: [],
+        chk_widget: [], chk_prev: [], chk_cb: [],
+        tgl_widget: [], tgl_prev: [], tgl_cb: [],
+        swt_widget: [], swt_prev: [], swt_cb: [],
+        entry_widget: [], entry_prev: [], entry_cb: [],
+        hover_widget: [], hover_prev: [], hover_cb: [],
+        focus_widget: [], focus_prev: [], focus_cb: [],
+        submit_widget: [], submit_prev: [], submit_cb: [],
+        listbox_widget: [], listbox_prev: [], listbox_cb: [],
+        dropdown_widget: [], dropdown_prev: [], dropdown_cb: [],
+        stack_widget: [], stack_prev: [], stack_cb: [],
+        nb_widget: [], nb_prev: [], nb_cb: [],
+        win_widget: [], win_prev: [], win_cb: [],
+        wact_widget: [], wact_prev: [], wact_cb: [],
+        resize_widget: [], resize_prev: [], resize_cb: [],
+        spin_widget: [], spin_prev: [], spin_cb: [],
+        scale_widget: [], scale_prev: [], scale_cb: [],
+        paned_widget: [], paned_prev: [], paned_cb: [],
+        expander_widget: [], expander_prev: [], expander_cb: [],
+        reveal_widget: [], reveal_prev: [], reveal_cb: [],
+        tview_widget: [], tview_prev: [], tview_cb: [],
+        cal_widget: [], cal_prev: [], cal_cb: [],
+        tmr_interval: [], tmr_next: [], tmr_repeat: [], tmr_active: [], tmr_cb: [],
+        sig_q: gtk_ffi::g_queue_new(), btn_sig: [], submit_sig: [],
+        file_q: gtk_ffi::g_queue_new(), file_dlg: [], file_kind: [], file_cb: [],
+        ask_q: gtk_ffi::g_queue_new(), ask_dlg: [], ask_cb: [],
+        clip_q: gtk_ffi::g_queue_new(), clip_src: [], clip_cb: [],
+        swr_widget: [], swr_prev: [], swr_cb: [],
+        cmr_widget: [], cmr_prev: [], cmr_cb: [],
+        running:      true,
+    }
+end
