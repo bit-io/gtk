@@ -1,0 +1,261 @@
+struct Label is
+    pub handle: int
+end
+
+pub fn new_label(text: string) -> Label is
+    return Label { handle: gtk_ffi::gtk_label_new(text) }
+end
+
+;; Etykieta z Pango markup, np. "<b>pogrubione</b> i <i>kursywa</i>".
+pub fn new_markup_label(markup: string) -> Label is
+    let h: int = gtk_ffi::gtk_label_new("")
+    gtk_ffi::gtk_label_set_markup(h, markup)
+    return Label { handle: h }
+end
+
+impl Label is
+    ;; (0.3) Minimalna szerokosc w znakach (np. kolumna kluczy w tabeli).
+    fn set_width_chars(self, n_chars: int) is
+        gtk_ffi::gtk_label_set_width_chars(self.handle, n_chars)
+    end
+
+    fn set_text(self, text: string) is
+        gtk_ffi::gtk_label_set_text(self.handle, text)
+    end
+
+    fn text(self) -> string is
+        return gtk_ffi::gtk_label_get_text(self.handle)
+    end
+
+    fn set_markup(self, markup: string) is
+        gtk_ffi::gtk_label_set_markup(self.handle, markup)
+    end
+
+    fn set_wrap(self, wrap: bool) is
+        gtk_ffi::gtk_label_set_wrap(self.handle, gtk::b2i(wrap))
+    end
+
+    fn set_xalign(self, xalign: f64) is
+        gtk_ffi::gtk_label_set_xalign(self.handle, xalign)
+    end
+
+    ;; Pozwala zaznaczac i kopiowac tekst etykiety myszka.
+    fn set_selectable(self, selectable: bool) is
+        gtk_ffi::gtk_label_set_selectable(self.handle, gtk::b2i(selectable))
+    end
+
+    ;; Patrz `gtk::ellipsize_*()`.
+    fn set_ellipsize(self, mode: int) is
+        gtk_ffi::gtk_label_set_ellipsize(self.handle, mode)
+    end
+
+    fn set_max_width_chars(self, n_chars: int) is
+        gtk_ffi::gtk_label_set_max_width_chars(self.handle, n_chars)
+    end
+
+    ;; Patrz `gtk::justify_*()`.
+    fn set_justify(self, justification: int) is
+        gtk_ffi::gtk_label_set_justify(self.handle, justification)
+    end
+
+    fn set_lines(self, lines: int) is
+        gtk_ffi::gtk_label_set_lines(self.handle, lines)
+    end
+end
+
+;; ── Entry ───────────────────────────────────────────────────────────────────
+
+struct Entry is
+    pub handle: int
+end
+
+pub fn new_entry(placeholder: string) -> Entry is
+    let h: int = gtk_ffi::gtk_entry_new()
+    gtk_ffi::gtk_entry_set_placeholder_text(h, placeholder)
+    return Entry { handle: h }
+end
+
+impl Entry is
+    fn text(self) -> string is
+        return gtk_ffi::gtk_editable_get_text(self.handle)
+    end
+
+    fn set_text(self, text: string) is
+        gtk_ffi::gtk_editable_set_text(self.handle, text)
+    end
+
+    fn placeholder(self) -> string is
+        return gtk_ffi::gtk_entry_get_placeholder_text(self.handle)
+    end
+
+    fn set_placeholder(self, text: string) is
+        gtk_ffi::gtk_entry_set_placeholder_text(self.handle, text)
+    end
+
+    ;; `false` = zamiast znakow kropki (jak pole hasla).
+    fn set_visibility(self, visible: bool) is
+        gtk_ffi::gtk_entry_set_visibility(self.handle, gtk::b2i(visible))
+    end
+
+    fn set_max_length(self, max_length: int) is
+        gtk_ffi::gtk_entry_set_max_length(self.handle, max_length)
+    end
+
+    fn set_editable(self, editable: bool) is
+        gtk_ffi::gtk_editable_set_editable(self.handle, gtk::b2i(editable))
+    end
+
+    fn is_editable(self) -> bool is
+        return gtk_ffi::gtk_editable_get_editable(self.handle) != 0
+    end
+
+    fn set_width_chars(self, n_chars: int) is
+        gtk_ffi::gtk_editable_set_width_chars(self.handle, n_chars)
+    end
+
+    fn select_all(self) is
+        gtk_ffi::gtk_editable_select_region(self.handle, 0, -1)
+    end
+
+    fn select_region(self, start_pos: int, end_pos: int) is
+        gtk_ffi::gtk_editable_select_region(self.handle, start_pos, end_pos)
+    end
+
+    fn set_position(self, position: int) is
+        gtk_ffi::gtk_editable_set_position(self.handle, position)
+    end
+
+    fn position(self) -> int is
+        return gtk::c_int(gtk_ffi::gtk_editable_get_position(self.handle))
+    end
+end
+
+;; ── PasswordEntry ───────────────────────────────────────────────────────────
+
+struct PasswordEntry is
+    pub handle: int
+end
+
+pub fn new_password_entry() -> PasswordEntry is
+    return PasswordEntry { handle: gtk_ffi::gtk_password_entry_new() }
+end
+
+impl PasswordEntry is
+    fn text(self) -> string is
+        return gtk_ffi::gtk_editable_get_text(self.handle)
+    end
+
+    fn set_text(self, text: string) is
+        gtk_ffi::gtk_editable_set_text(self.handle, text)
+    end
+
+    ;; Ikona „oka” pozwalajaca podejrzec haslo.
+    fn set_show_peek_icon(self, show: bool) is
+        gtk_ffi::gtk_password_entry_set_show_peek_icon(self.handle, gtk::b2i(show))
+    end
+
+    ;; Ten sam widget jako `Entry` — do `app.on_change(pw.as_entry(), ...)`.
+    fn as_entry(self) -> Entry is
+        return Entry { handle: self.handle }
+    end
+end
+
+;; ── SearchEntry ─────────────────────────────────────────────────────────────
+
+struct SearchEntry is
+    pub handle: int
+end
+
+pub fn new_search_entry() -> SearchEntry is
+    return SearchEntry { handle: gtk_ffi::gtk_search_entry_new() }
+end
+
+impl SearchEntry is
+    fn text(self) -> string is
+        return gtk_ffi::gtk_editable_get_text(self.handle)
+    end
+
+    fn set_text(self, text: string) is
+        gtk_ffi::gtk_editable_set_text(self.handle, text)
+    end
+
+    ;; (0.3) Tekst podpowiedzi w pustym polu (GTK >= 4.10).
+    fn set_placeholder(self, text: string) is
+        gtk_ffi::gtk_search_entry_set_placeholder_text(self.handle, text)
+    end
+
+    fn as_entry(self) -> Entry is
+        return Entry { handle: self.handle }
+    end
+end
+
+;; ── TextView ────────────────────────────────────────────────────────────────
+
+struct TextView is
+    pub handle: int
+end
+
+pub fn new_text_view() -> TextView is
+    return TextView { handle: gtk_ffi::gtk_text_view_new() }
+end
+
+;; Tekst siedzi w `GtkTextBuffer`; do jego odczytu GTK wymaga dwoch
+;; `GtkTextIter` (struktury C po 80 B) — alokujemy je na chwile przez `g_malloc0`.
+
+;; Cala zawartosc bufora widgetu `handle`.
+;; Uwaga: `gtk_text_buffer_get_text` zwraca swiezo zaalokowany `char*`, ktorego
+;; nie da sie zwolnic bez surowego wskaznika — kazdy odczyt przecieka kopie
+;; tekstu (patrz README, „Znane ograniczenia”).
+fn text_view_text(handle: int) -> string is
+    let buf: int = gtk_ffi::gtk_text_view_get_buffer(handle)
+    let iters: int = gtk_ffi::g_malloc0(160)
+    gtk_ffi::gtk_text_buffer_get_start_iter(buf, iters)
+    gtk_ffi::gtk_text_buffer_get_end_iter(buf, iters + 80)
+    let t: string = gtk_ffi::gtk_text_buffer_get_text(buf, iters, iters + 80, 1)
+    gtk_ffi::g_free(iters)
+    return t
+end
+
+impl TextView is
+    fn text(self) -> string is
+        return text_view_text(self.handle)
+    end
+
+    fn set_text(self, text: string) is
+        let buf: int = gtk_ffi::gtk_text_view_get_buffer(self.handle)
+        gtk_ffi::gtk_text_buffer_set_text(buf, text, -1)
+    end
+
+    ;; Dopisuje tekst w miejscu kursora (domyslnie: na koncu pustego bufora).
+    fn append(self, text: string) is
+        let buf: int = gtk_ffi::gtk_text_view_get_buffer(self.handle)
+        gtk_ffi::gtk_text_buffer_insert_at_cursor(buf, text, -1)
+    end
+
+    fn char_count(self) -> int is
+        let buf: int = gtk_ffi::gtk_text_view_get_buffer(self.handle)
+        return gtk::c_int(gtk_ffi::gtk_text_buffer_get_char_count(buf))
+    end
+
+    fn line_count(self) -> int is
+        let buf: int = gtk_ffi::gtk_text_view_get_buffer(self.handle)
+        return gtk::c_int(gtk_ffi::gtk_text_buffer_get_line_count(buf))
+    end
+
+    fn set_editable(self, editable: bool) is
+        gtk_ffi::gtk_text_view_set_editable(self.handle, gtk::b2i(editable))
+    end
+
+    ;; Patrz `gtk::wrap_*()`.
+    fn set_wrap(self, wrap_mode: int) is
+        gtk_ffi::gtk_text_view_set_wrap_mode(self.handle, wrap_mode)
+    end
+
+    fn set_monospace(self, monospace: bool) is
+        gtk_ffi::gtk_text_view_set_monospace(self.handle, gtk::b2i(monospace))
+    end
+
+    fn set_cursor_visible(self, visible: bool) is
+        gtk_ffi::gtk_text_view_set_cursor_visible(self.handle, gtk::b2i(visible))
+    end
+end
