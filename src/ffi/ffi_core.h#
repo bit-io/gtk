@@ -1,0 +1,65 @@
+extern static [c, "gtk4"] is
+    fn gtk_init()
+    fn gtk_is_initialized() -> int
+end
+
+;; ── GLib — pętla zdarzeń (GMainContext) ──────────────────────────────────────
+;; GTK4 usunął `gtk_main`/`gtk_events_pending`/`gtk_main_iteration` — od GTK4
+;; napędza się pętlę bezpośrednio przez GLib-owy `g_main_context_iteration`.
+;; `context = 0` oznacza domyślny (globalny) kontekst.
+
+extern static [c, "glib-2.0"] is
+    fn g_main_context_iteration(context: int, may_block: int) -> int
+    fn g_main_context_default() -> int
+end
+
+;; ── GObject — zarządzanie referencjami ────────────────────────────────────────
+
+extern static [c, "gobject-2.0"] is
+    fn g_object_ref(obj: int) -> int
+    fn g_object_unref(obj: int)
+end
+
+;; ── GtkSettings ───────────────────────────────────────────────────────────────
+;; (brak `g_object_set` — jest wariadyczny; motywy/ciemny tryb ustawiaj przez CSS
+;; albo zmienne srodowiskowe `GTK_THEME=Adwaita:dark`.)
+
+;; ── GLib — czas i spanie (timery w `App` bez sygnalow) ────────────────────────
+
+extern static [c, "glib-2.0"] is
+    fn g_get_monotonic_time() -> int         ;; mikrosekundy od startu (monotoniczny zegar)
+    fn g_usleep(microseconds: int)
+    ;; Bufor na `GtkTextIter` (2 x 80 B) — GLib-owy odpowiednik malloc/free,
+    ;; bez zadnego konfliktu z wbudowanym `malloc` kompilatora H#.
+    fn g_malloc0(n_bytes: int) -> int
+    fn g_free(mem: int)
+end
+
+extern static [c, "gio-2.0"] is
+    ;; (uri, GAppLaunchContext* = NULL, GError** = NULL) -> gboolean
+    fn g_app_info_launch_default_for_uri(uri: string, context: int, error: int) -> int
+end
+
+;; Sygnaly GObject (0.4): kompilator H# zamienia nazwe zwyklej funkcji uzyta jako wartosc
+;; na prawdziwy wskaznik C, wiec callbacki sa zwyklymi funkcjami `fn nazwa(a: int, b: int) -> int`
+;; z biblioteki (bez domkniec i bez zadnego kodu C). Callbacki tylko wrzucaja zdarzenie do
+;; kolejki GLib (GQueue); domkniecia uzytkownika sa wolane z `App::poll`, w glownym watku.
+;; Wszystkie callbacki zwracaja `int` (0), bo sygnaly typu `close-request` oczekuja gboolean.
+
+extern static [c, "gobject-2.0"] is
+    ;; (instance, "signal", GCallback, user_data, GClosureNotify = NULL, GConnectFlags = 0) -> handler id
+    fn g_signal_connect_data(instance: int, detailed_signal: string, handler: int, data: int, destroy: int, flags: int) -> int
+    fn g_signal_handler_disconnect(instance: int, handler_id: int)
+end
+
+extern static [c, "glib-2.0"] is
+    fn g_queue_new() -> int
+    fn g_queue_push_tail(queue: int, data: int)
+    fn g_queue_pop_head(queue: int) -> int
+    fn g_queue_is_empty(queue: int) -> int
+end
+
+extern static [c, "gio-2.0"] is
+    fn g_file_new_for_path(path: string) -> int
+    fn g_file_get_path(file: int) -> string
+end
