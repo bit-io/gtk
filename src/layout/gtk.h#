@@ -1,0 +1,305 @@
+struct Box is
+    pub handle: int
+end
+
+pub fn new_box(orientation: int, spacing: int) -> Box is
+    return Box { handle: gtk_ffi::gtk_box_new(orientation, spacing) }
+end
+
+;; Skroty: pionowy / poziomy kontener liniowy.
+pub fn vbox(spacing: int) -> Box is
+    return Box { handle: gtk_ffi::gtk_box_new(1, spacing) }
+end
+
+pub fn hbox(spacing: int) -> Box is
+    return Box { handle: gtk_ffi::gtk_box_new(0, spacing) }
+end
+
+impl Box is
+    fn append(self, child: int) is
+        gtk_ffi::gtk_box_append(self.handle, child)
+    end
+
+    ;; To samo co `append`. Osobna nazwa, bo kompilator H# uznaje kazde `x.append(..)` w domknieciu za mutacje
+    ;; zmiennej `x` (heurystyka dla tablic) i przechwytuje ja przez referencje — dla uchwytow GTK konczylo
+    ;; sie to wiszaca referencja po powrocie z funkcji. `add_child` takiej heurystyki nie wyzwala.
+    fn add_child(self, child: int) is
+        gtk_ffi::gtk_box_append(self.handle, child)
+    end
+
+    fn prepend(self, child: int) is
+        gtk_ffi::gtk_box_prepend(self.handle, child)
+    end
+
+    fn remove(self, child: int) is
+        gtk_ffi::gtk_box_remove(self.handle, child)
+    end
+
+    ;; Przesuwa `child` tuz za `sibling` (sibling = 0: na sam poczatek).
+    fn reorder_after(self, child: int, sibling: int) is
+        gtk_ffi::gtk_box_reorder_child_after(self.handle, child, sibling)
+    end
+
+    ;; Usuwa wszystkie dzieci (np. przed przebudowaniem listy).
+    fn clear(self) is
+        let mut child: int = gtk_ffi::gtk_widget_get_first_child(self.handle)
+        while child != 0 is
+            let next: int = gtk_ffi::gtk_widget_get_next_sibling(child)
+            gtk_ffi::gtk_box_remove(self.handle, child)
+            child = next
+        end
+    end
+
+    fn set_spacing(self, spacing: int) is
+        gtk_ffi::gtk_box_set_spacing(self.handle, spacing)
+    end
+
+    fn set_homogeneous(self, homogeneous: bool) is
+        gtk_ffi::gtk_box_set_homogeneous(self.handle, gtk::b2i(homogeneous))
+    end
+end
+
+;; ── Grid ────────────────────────────────────────────────────────────────────
+
+struct Grid is
+    pub handle: int
+end
+
+pub fn new_grid() -> Grid is
+    return Grid { handle: gtk_ffi::gtk_grid_new() }
+end
+
+impl Grid is
+    fn attach(self, child: int, column: int, row: int, w: int, h: int) is
+        gtk_ffi::gtk_grid_attach(self.handle, child, column, row, w, h)
+    end
+
+    fn remove(self, child: int) is
+        gtk_ffi::gtk_grid_remove(self.handle, child)
+    end
+
+    fn set_row_spacing(self, spacing: int) is
+        gtk_ffi::gtk_grid_set_row_spacing(self.handle, spacing)
+    end
+
+    fn set_column_spacing(self, spacing: int) is
+        gtk_ffi::gtk_grid_set_column_spacing(self.handle, spacing)
+    end
+
+    fn set_row_homogeneous(self, homogeneous: bool) is
+        gtk_ffi::gtk_grid_set_row_homogeneous(self.handle, gtk::b2i(homogeneous))
+    end
+
+    fn set_column_homogeneous(self, homogeneous: bool) is
+        gtk_ffi::gtk_grid_set_column_homogeneous(self.handle, gtk::b2i(homogeneous))
+    end
+end
+
+;; ── Frame ───────────────────────────────────────────────────────────────────
+
+struct Frame is
+    pub handle: int
+end
+
+pub fn new_frame(label: string) -> Frame is
+    return Frame { handle: gtk_ffi::gtk_frame_new(label) }
+end
+
+impl Frame is
+    fn set_child(self, child: int) is
+        gtk_ffi::gtk_frame_set_child(self.handle, child)
+    end
+
+    fn set_label(self, label: string) is
+        gtk_ffi::gtk_frame_set_label(self.handle, label)
+    end
+end
+
+;; ── Separator ───────────────────────────────────────────────────────────────
+
+struct Separator is
+    pub handle: int
+end
+
+pub fn new_separator(orientation: int) -> Separator is
+    return Separator { handle: gtk_ffi::gtk_separator_new(orientation) }
+end
+
+;; ── ScrolledWindow ──────────────────────────────────────────────────────────
+
+struct ScrolledWindow is
+    pub handle: int
+end
+
+pub fn new_scrolled_window() -> ScrolledWindow is
+    return ScrolledWindow { handle: gtk_ffi::gtk_scrolled_window_new() }
+end
+
+impl ScrolledWindow is
+    fn set_child(self, child: int) is
+        gtk_ffi::gtk_scrolled_window_set_child(self.handle, child)
+    end
+
+    ;; Patrz `gtk::policy_*()` — osobno dla osi poziomej i pionowej.
+    fn set_policy(self, horizontal: int, vertical: int) is
+        gtk_ffi::gtk_scrolled_window_set_policy(self.handle, horizontal, vertical)
+    end
+
+    fn set_min_width(self, width: int) is
+        gtk_ffi::gtk_scrolled_window_set_min_content_width(self.handle, width)
+    end
+
+    fn set_min_height(self, height: int) is
+        gtk_ffi::gtk_scrolled_window_set_min_content_height(self.handle, height)
+    end
+
+    fn set_max_height(self, height: int) is
+        gtk_ffi::gtk_scrolled_window_set_max_content_height(self.handle, height)
+    end
+
+    fn set_propagate_natural_height(self, propagate: bool) is
+        gtk_ffi::gtk_scrolled_window_set_propagate_natural_height(self.handle, gtk::b2i(propagate))
+    end
+end
+
+;; ── Paned ───────────────────────────────────────────────────────────────────
+
+struct Paned is
+    pub handle: int
+end
+
+pub fn new_paned(orientation: int) -> Paned is
+    return Paned { handle: gtk_ffi::gtk_paned_new(orientation) }
+end
+
+impl Paned is
+    fn set_start(self, child: int) is
+        gtk_ffi::gtk_paned_set_start_child(self.handle, child)
+    end
+
+    fn set_end(self, child: int) is
+        gtk_ffi::gtk_paned_set_end_child(self.handle, child)
+    end
+
+    ;; Polozenie separatora w pikselach od poczatku.
+    fn position(self) -> int is
+        return gtk::c_int(gtk_ffi::gtk_paned_get_position(self.handle))
+    end
+
+    fn set_position(self, position: int) is
+        gtk_ffi::gtk_paned_set_position(self.handle, position)
+    end
+
+    fn set_wide_handle(self, wide: bool) is
+        gtk_ffi::gtk_paned_set_wide_handle(self.handle, gtk::b2i(wide))
+    end
+end
+
+;; ── CenterBox ───────────────────────────────────────────────────────────────
+
+struct CenterBox is
+    pub handle: int
+end
+
+pub fn new_center_box() -> CenterBox is
+    return CenterBox { handle: gtk_ffi::gtk_center_box_new() }
+end
+
+impl CenterBox is
+    fn set_start(self, child: int) is
+        gtk_ffi::gtk_center_box_set_start_widget(self.handle, child)
+    end
+
+    fn set_center(self, child: int) is
+        gtk_ffi::gtk_center_box_set_center_widget(self.handle, child)
+    end
+
+    fn set_end(self, child: int) is
+        gtk_ffi::gtk_center_box_set_end_widget(self.handle, child)
+    end
+end
+
+;; ── Overlay ─────────────────────────────────────────────────────────────────
+
+struct Overlay is
+    pub handle: int
+end
+
+pub fn new_overlay() -> Overlay is
+    return Overlay { handle: gtk_ffi::gtk_overlay_new() }
+end
+
+impl Overlay is
+    fn set_child(self, child: int) is
+        gtk_ffi::gtk_overlay_set_child(self.handle, child)
+    end
+
+    fn add_overlay(self, child: int) is
+        gtk_ffi::gtk_overlay_add_overlay(self.handle, child)
+    end
+
+    fn remove_overlay(self, child: int) is
+        gtk_ffi::gtk_overlay_remove_overlay(self.handle, child)
+    end
+end
+
+;; ── Revealer ────────────────────────────────────────────────────────────────
+
+struct Revealer is
+    pub handle: int
+end
+
+pub fn new_revealer() -> Revealer is
+    return Revealer { handle: gtk_ffi::gtk_revealer_new() }
+end
+
+impl Revealer is
+    fn set_child(self, child: int) is
+        gtk_ffi::gtk_revealer_set_child(self.handle, child)
+    end
+
+    fn set_reveal(self, reveal: bool) is
+        gtk_ffi::gtk_revealer_set_reveal_child(self.handle, gtk::b2i(reveal))
+    end
+
+    fn is_revealed(self) -> bool is
+        return gtk_ffi::gtk_revealer_get_reveal_child(self.handle) != 0
+    end
+
+    ;; Patrz `gtk::transition_*()`.
+    fn set_transition(self, transition: int) is
+        gtk_ffi::gtk_revealer_set_transition_type(self.handle, transition)
+    end
+
+    fn set_transition_duration(self, duration_ms: int) is
+        gtk_ffi::gtk_revealer_set_transition_duration(self.handle, duration_ms)
+    end
+end
+
+;; ── Expander ────────────────────────────────────────────────────────────────
+
+struct Expander is
+    pub handle: int
+end
+
+pub fn new_expander(label: string) -> Expander is
+    return Expander { handle: gtk_ffi::gtk_expander_new(label) }
+end
+
+impl Expander is
+    fn set_child(self, child: int) is
+        gtk_ffi::gtk_expander_set_child(self.handle, child)
+    end
+
+    fn set_label(self, label: string) is
+        gtk_ffi::gtk_expander_set_label(self.handle, label)
+    end
+
+    fn set_expanded(self, expanded: bool) is
+        gtk_ffi::gtk_expander_set_expanded(self.handle, gtk::b2i(expanded))
+    end
+
+    fn is_expanded(self) -> bool is
+        return gtk_ffi::gtk_expander_get_expanded(self.handle) != 0
+    end
+end
