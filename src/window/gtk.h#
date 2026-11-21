@@ -1,760 +1,174 @@
-extern static [c, "gtk4"] is
-    fn gtk_init()
-    fn gtk_is_initialized() -> int
+use "std -> strings" from "strings"
+
+;; ── Window ──────────────────────────────────────────────────────────────────
+
+struct Window is
+    pub handle: int
 end
 
-;; ── GTK4 — GtkWindow ──────────────────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_window_new() -> int
-    fn gtk_window_set_title(window: int, title: string)
-    fn gtk_window_set_default_size(window: int, width: int, height: int)
-    fn gtk_window_set_resizable(window: int, resizable: int)
-    fn gtk_window_set_child(window: int, child: int)
-    fn gtk_window_present(window: int)
-    fn gtk_window_destroy(window: int)
-    fn gtk_window_set_modal(window: int, modal: int)
-    fn gtk_window_set_decorated(window: int, decorated: int)
-    fn gtk_window_fullscreen(window: int)
-    fn gtk_window_unfullscreen(window: int)
-    fn gtk_window_minimize(window: int)
-    fn gtk_window_maximize(window: int)
+pub fn new_window(title: string, width: int, height: int) -> Window is
+    let h: int = gtk_ffi::gtk_window_new()
+    gtk_ffi::gtk_window_set_title(h, title)
+    gtk_ffi::gtk_window_set_default_size(h, width, height)
+    return Window { handle: h }
 end
 
-;; ── GTK4 — GtkButton ──────────────────────────────────────────────────────────
+impl Window is
+    ;; (0.4) Zawartosc okna `AdwWindow` (zamiast `set_child`).
+    fn set_content(self, content: int) is
+        gtk_ffi::adw_window_set_content(self.handle, content)
+    end
 
-extern static [c, "gtk4"] is
-    fn gtk_button_new() -> int
-    fn gtk_button_new_with_label(label: string) -> int
-    fn gtk_button_set_label(button: int, label: string)
+    fn set_child(self, child: int) is
+        gtk_ffi::gtk_window_set_child(self.handle, child)
+    end
+
+    fn present(self) is
+        gtk_ffi::gtk_window_present(self.handle)
+    end
+
+    fn show(self) is
+        gtk_ffi::gtk_widget_show(self.handle)
+    end
+
+    fn set_title(self, title: string) is
+        gtk_ffi::gtk_window_set_title(self.handle, title)
+    end
+
+    fn title(self) -> string is
+        return gtk_ffi::gtk_window_get_title(self.handle)
+    end
+
+    fn set_resizable(self, resizable: bool) is
+        gtk_ffi::gtk_window_set_resizable(self.handle, gtk::b2i(resizable))
+    end
+
+    fn set_modal(self, modal: bool) is
+        gtk_ffi::gtk_window_set_modal(self.handle, gtk::b2i(modal))
+    end
+
+    fn set_decorated(self, decorated: bool) is
+        gtk_ffi::gtk_window_set_decorated(self.handle, gtk::b2i(decorated))
+    end
+
+    ;; Wlasny pasek tytulu (np. `HeaderBar`) zamiast systemowego.
+    fn set_titlebar(self, titlebar: int) is
+        gtk_ffi::gtk_window_set_titlebar(self.handle, titlebar)
+    end
+
+    fn set_icon_name(self, icon_name: string) is
+        gtk_ffi::gtk_window_set_icon_name(self.handle, icon_name)
+    end
+
+    ;; Okno-dziecko zawsze nad `parent` (typowe dla dialogow).
+    fn set_transient_for(self, parent: Window) is
+        gtk_ffi::gtk_window_set_transient_for(self.handle, parent.handle)
+    end
+
+    ;; `true`: klik w „X” tylko ukrywa okno (nie niszczy go).
+    fn set_hide_on_close(self, hide_on_close: bool) is
+        gtk_ffi::gtk_window_set_hide_on_close(self.handle, gtk::b2i(hide_on_close))
+    end
+
+    ;; Widget aktywowany klawiszem Enter w oknie (np. przycisk „OK”).
+    fn set_default_widget(self, widget: int) is
+        gtk_ffi::gtk_window_set_default_widget(self.handle, widget)
+    end
+
+    fn is_active(self) -> bool is
+        return gtk_ffi::gtk_window_is_active(self.handle) != 0
+    end
+
+    fn is_maximized(self) -> bool is
+        return gtk_ffi::gtk_window_is_maximized(self.handle) != 0
+    end
+
+    fn is_fullscreen(self) -> bool is
+        return gtk_ffi::gtk_window_is_fullscreen(self.handle) != 0
+    end
+
+    fn maximize(self) is gtk_ffi::gtk_window_maximize(self.handle) end
+    fn unmaximize(self) is gtk_ffi::gtk_window_unmaximize(self.handle) end
+    fn minimize(self) is gtk_ffi::gtk_window_minimize(self.handle) end
+    fn fullscreen(self) is gtk_ffi::gtk_window_fullscreen(self.handle) end
+    fn unfullscreen(self) is gtk_ffi::gtk_window_unfullscreen(self.handle) end
+
+    ;; Zamyka okno tak jak klik w „X” (respektuje `set_hide_on_close`).
+    fn close(self) is
+        gtk_ffi::gtk_window_close(self.handle)
+    end
+
+    ;; Niszczy okno natychmiast (np. po `app.quit()`, jesli chcesz tez
+    ;; posprzatac widget zamiast tylko zatrzymac petle).
+    fn destroy(self) is
+        gtk_ffi::gtk_window_destroy(self.handle)
+    end
 end
 
-;; ── GTK4 — GtkLabel ───────────────────────────────────────────────────────────
+;; ── HeaderBar ───────────────────────────────────────────────────────────────
 
-extern static [c, "gtk4"] is
-    fn gtk_label_new(text: string) -> int
-    fn gtk_label_set_text(label: int, text: string)
-    fn gtk_label_set_xalign(label: int, xalign: f64)
-    fn gtk_label_set_wrap(label: int, wrap: int)
+struct HeaderBar is
+    pub handle: int
 end
 
-;; ── GTK4 — GtkBox (kontener liniowy, zastępuje HBox/VBox z GTK3) ────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_box_new(orientation: int, spacing: int) -> int
-    fn gtk_box_append(box_: int, child: int)
-    fn gtk_box_remove(box_: int, child: int)
-    fn gtk_box_set_spacing(box_: int, spacing: int)
-    fn gtk_box_set_homogeneous(box_: int, homogeneous: int)
+pub fn new_header_bar() -> HeaderBar is
+    return HeaderBar { handle: gtk_ffi::gtk_header_bar_new() }
 end
 
-;; ── GTK4 — GtkEntry / GtkEditable (pole tekstowe) ────────────────────────────
+impl HeaderBar is
+    fn pack_start(self, child: int) is
+        gtk_ffi::gtk_header_bar_pack_start(self.handle, child)
+    end
 
-extern static [c, "gtk4"] is
-    fn gtk_entry_new() -> int
-    fn gtk_entry_set_placeholder_text(entry: int, text: string)
+    fn pack_end(self, child: int) is
+        gtk_ffi::gtk_header_bar_pack_end(self.handle, child)
+    end
+
+    fn set_title_widget(self, widget: int) is
+        gtk_ffi::gtk_header_bar_set_title_widget(self.handle, widget)
+    end
+
+    ;; Pokazuje / chowa systemowe przyciski okna (minimalizuj, zamknij...).
+    fn set_show_buttons(self, show: bool) is
+        gtk_ffi::gtk_header_bar_set_show_title_buttons(self.handle, gtk::b2i(show))
+    end
 end
 
-extern static [c, "gtk4"] is
-    fn gtk_editable_set_text(editable: int, text: string)
-    fn gtk_editable_get_text(editable: int) -> string
+;; ── ActionBar ───────────────────────────────────────────────────────────────
+
+struct ActionBar is
+    pub handle: int
 end
 
-;; ── GTK4 — GtkCheckButton (checkbox / radio) ─────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_check_button_new() -> int
-    fn gtk_check_button_new_with_label(label: string) -> int
-    fn gtk_check_button_set_active(check: int, active: int)
-    fn gtk_check_button_get_active(check: int) -> int
+pub fn new_action_bar() -> ActionBar is
+    return ActionBar { handle: gtk_ffi::gtk_action_bar_new() }
 end
 
-;; ── GTK4 — GtkGrid ────────────────────────────────────────────────────────────
+impl ActionBar is
+    fn pack_start(self, child: int) is
+        gtk_ffi::gtk_action_bar_pack_start(self.handle, child)
+    end
 
-extern static [c, "gtk4"] is
-    fn gtk_grid_new() -> int
-    fn gtk_grid_attach(grid: int, child: int, column: int, row: int, w: int, h: int)
-    fn gtk_grid_set_row_spacing(grid: int, spacing: int)
-    fn gtk_grid_set_column_spacing(grid: int, spacing: int)
+    fn pack_end(self, child: int) is
+        gtk_ffi::gtk_action_bar_pack_end(self.handle, child)
+    end
+
+    fn set_center(self, child: int) is
+        gtk_ffi::gtk_action_bar_set_center_widget(self.handle, child)
+    end
 end
 
-;; ── GTK4 — pozostałe widgety ──────────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_image_new_from_file(path: string) -> int
-    fn gtk_separator_new(orientation: int) -> int
-    fn gtk_frame_new(label: string) -> int
-    fn gtk_frame_set_label(frame: int, label: string)
-    fn gtk_frame_set_child(frame: int, child: int)       ;; uzywane przez `Frame::set_child` — wczesniej brakowalo deklaracji
-    fn gtk_scrolled_window_new() -> int
-    fn gtk_scrolled_window_set_child(scrolled: int, child: int)
-    fn gtk_text_view_new() -> int
-    fn gtk_progress_bar_new() -> int
-    fn gtk_progress_bar_set_fraction(bar: int, fraction: f64)
-end
-
-;; ── GTK4 — GtkWidget (wspólne dla każdego widgetu) ───────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_widget_show(widget: int)
-    fn gtk_widget_hide(widget: int)
-    fn gtk_widget_set_visible(widget: int, visible: int)
-    fn gtk_widget_set_sensitive(widget: int, sensitive: int)
-    fn gtk_widget_set_size_request(widget: int, width: int, height: int)
-    fn gtk_widget_set_margin_top(widget: int, margin: int)
-    fn gtk_widget_set_margin_bottom(widget: int, margin: int)
-    fn gtk_widget_set_margin_start(widget: int, margin: int)
-    fn gtk_widget_set_margin_end(widget: int, margin: int)
-    fn gtk_widget_set_halign(widget: int, align: int)
-    fn gtk_widget_set_valign(widget: int, align: int)
-    fn gtk_widget_set_hexpand(widget: int, expand: int)
-    fn gtk_widget_set_vexpand(widget: int, expand: int)
-    fn gtk_widget_add_css_class(widget: int, css_class: string)
-    fn gtk_widget_remove_css_class(widget: int, css_class: string)
-    fn gtk_widget_grab_focus(widget: int) -> int
-    fn gtk_widget_get_state_flags(widget: int) -> int
-    fn gtk_widget_is_visible(widget: int) -> int
-    ;; `1` dopoki widget jest faktycznie zmapowany na ekran; po zniszczeniu
-    ;; okna (np. domyslna reakcja GTK na klik w „X”) spada do `0` — patrz
-    ;; `App::on_window_close` w gtk.h# po wyjasnienie, jak to (bezpiecznie,
-    ;; dzieki wczesniejszemu `g_object_ref`) wykorzystujemy bez sygnalow.
-    fn gtk_widget_get_mapped(widget: int) -> int
-end
-
-;; ── GTK4 — GtkDropDown + GtkStringList (lista rozwijana) ─────────────────────
-;; Budujemy liste opcji przez GtkStringList zamiast `gtk_drop_down_new_from_strings`,
-;; zeby nie polegac na marshalingu tablic `char**`/NULL-terminated z H# do C —
-;; `gtk_string_list_append` przyjmuje pojedynczy `const char*` na raz, co jest
-;; w 100% zgodne z tym, jak H# juz marshaluje zwykle `string`.
-
-extern static [c, "gtk4"] is
-    fn gtk_string_list_new(strings: int) -> int          ;; wywolaj z 0 (NULL) -> pusta lista
-    fn gtk_string_list_append(list: int, item: string)
-    fn gtk_string_list_remove(list: int, position: int)
-    fn gtk_drop_down_new(model: int, expression: int) -> int  ;; expression: 0 (NULL) = bez wlasnego wyrazenia wyszukiwania
-    fn gtk_drop_down_set_selected(dropdown: int, position: int)
-    fn gtk_drop_down_get_selected(dropdown: int) -> int   ;; 4294967295 (GTK_INVALID_LIST_POSITION) = brak zaznaczenia
-end
-
-;; ── GTK4 — GtkSpinButton ──────────────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_spin_button_new_with_range(min: f64, max: f64, step: f64) -> int
-    fn gtk_spin_button_get_value(spin: int) -> f64
-    fn gtk_spin_button_set_value(spin: int, value: f64)
-    fn gtk_spin_button_set_digits(spin: int, digits: int)
-end
-
-;; ── GTK4 — GtkListBox ─────────────────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_list_box_new() -> int
-    fn gtk_list_box_append(list_box: int, child: int)
-    fn gtk_list_box_remove(list_box: int, child: int)
-    fn gtk_list_box_set_selection_mode(list_box: int, mode: int)  ;; 0=none 1=single 2=browse 3=multiple
-    fn gtk_list_box_get_selected_row(list_box: int) -> int        ;; 0 = brak zaznaczenia
-    fn gtk_list_box_row_get_index(row: int) -> int                ;; -1 gdy nieprzypisany
-end
-
-;; ── GTK4 — GtkStack + GtkStackSwitcher (zakladki) ────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_stack_new() -> int
-    fn gtk_stack_add_titled(stack: int, child: int, name: string, title: string) -> int
-    fn gtk_stack_set_visible_child_name(stack: int, name: string)
-    fn gtk_stack_get_visible_child_name(stack: int) -> string
-    fn gtk_stack_switcher_new() -> int
-    fn gtk_stack_switcher_set_stack(switcher: int, stack: int)
-end
-
-;; ── GTK4 — GtkMenuButton + GtkPopover ─────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_menu_button_new() -> int
-    fn gtk_menu_button_set_label(menu_button: int, label: string)
-    fn gtk_menu_button_set_popover(menu_button: int, popover: int)
-    fn gtk_popover_new() -> int
-    fn gtk_popover_set_child(popover: int, child: int)
-    fn gtk_popover_popup(popover: int)
-    fn gtk_popover_popdown(popover: int)
-end
-
-;; ── GTK4 — GtkCenterBox / GtkOverlay ──────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_center_box_new() -> int
-    fn gtk_center_box_set_start_widget(center_box: int, child: int)
-    fn gtk_center_box_set_center_widget(center_box: int, child: int)
-    fn gtk_center_box_set_end_widget(center_box: int, child: int)
-    fn gtk_overlay_new() -> int
-    fn gtk_overlay_set_child(overlay: int, child: int)
-    fn gtk_overlay_add_overlay(overlay: int, child: int)
-    fn gtk_overlay_remove_overlay(overlay: int, child: int)
-end
-
-;; ── GTK4 — style CSS (GtkCssProvider) ─────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_css_provider_new() -> int
-    fn gtk_css_provider_load_from_string(provider: int, css: string)
-    fn gtk_css_provider_load_from_path(provider: int, path: string)
-    fn gdk_display_get_default() -> int
-    fn gtk_style_context_add_provider_for_display(display: int, provider: int, priority: int)
-end
-
-;; ── GTK4 — GtkAlertDialog (GTK >= 4.10) ───────────────────────────────────────
-;; Prawdziwy konstruktor (`gtk_alert_dialog_new`) jest wariadyczny (C-owe
-;; `...`); wolamy go z zerem argumentow wariadycznych — czyli dokladnie
-;; jak `printf(msg)` bez %-argumentow — zeby nie polegac na jeszcze
-;; niepewnym (patrz codegen.rs) wsparciu H# dla przekazywania realnych
-;; argumentow wariadycznych przez `extern`. Zeby bylo to bezpieczne mimo
-;; ze `msg` trafia jako C-owy format string, `gtk.h#` najpierw ucieka
-;; kazdy `%` na `%%` (`strings::replace_all`) zanim tu trafi.
-;; `gtk_alert_dialog_show` jest w pelni "fire-and-forget" (nie zwraca
-;; wyboru uzytkownika — to wymagaloby async `GAsyncReadyCallback`, a wiec
-;; C-owego wskaznika funkcji, poza zakresem biblioteki w 100% H#).
-
-extern static [c, "gtk4"] is
-    fn gtk_alert_dialog_new(escaped_format: string) -> int
-    fn gtk_alert_dialog_set_modal(dialog: int, modal: int)
-    fn gtk_alert_dialog_set_detail(dialog: int, detail: string)
-    fn gtk_alert_dialog_show(dialog: int, parent: int)
-end
-
-;; ── GLib — pętla zdarzeń (GMainContext) ──────────────────────────────────────
-;; GTK4 usunął `gtk_main`/`gtk_events_pending`/`gtk_main_iteration` — od GTK4
-;; napędza się pętlę bezpośrednio przez GLib-owy `g_main_context_iteration`.
-;; `context = 0` oznacza domyślny (globalny) kontekst.
-
-extern static [c, "glib-2.0"] is
-    fn g_main_context_iteration(context: int, may_block: int) -> int
-    fn g_main_context_default() -> int
-end
-
-;; ── GObject — zarządzanie referencjami ────────────────────────────────────────
-
-extern static [c, "gobject-2.0"] is
-    fn g_object_ref(obj: int) -> int
-    fn g_object_unref(obj: int)
-end
-
-;; ══════════════════════════════════════════════════════════════════════════════
-;; ── Rozszerzenie 0.2 ─────────────────────────────────────────────────────────
-;; Wszystko ponizej to dalej zwykle `extern static [c, "..."]` — zero C.
-;; Konwencje: wskazniki = `int`, `gboolean` = `int` (0/1), `double` = `f64`,
-;; wyliczenia GTK = `int`.
-;; ══════════════════════════════════════════════════════════════════════════════
-
-;; ── GtkWindow — dodatki ───────────────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_window_close(window: int)
-    fn gtk_window_set_titlebar(window: int, titlebar: int)
-    fn gtk_window_get_title(window: int) -> string
-    fn gtk_window_is_active(window: int) -> int
-    fn gtk_window_is_maximized(window: int) -> int
-    fn gtk_window_is_fullscreen(window: int) -> int
-    fn gtk_window_unmaximize(window: int)
-    fn gtk_window_set_transient_for(window: int, parent: int)
-    fn gtk_window_set_hide_on_close(window: int, setting: int)
-    fn gtk_window_set_icon_name(window: int, name: string)
-    fn gtk_window_set_default_widget(window: int, widget: int)
-end
-
-;; ── GtkWidget — dodatki ───────────────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_widget_set_tooltip_text(widget: int, text: string)
-    fn gtk_widget_get_tooltip_text(widget: int) -> string
-    fn gtk_widget_set_opacity(widget: int, opacity: f64)
-    fn gtk_widget_get_opacity(widget: int) -> f64
-    fn gtk_widget_get_width(widget: int) -> int
-    fn gtk_widget_get_height(widget: int) -> int
-    fn gtk_widget_get_parent(widget: int) -> int
-    fn gtk_widget_get_first_child(widget: int) -> int
-    fn gtk_widget_get_next_sibling(widget: int) -> int
-    fn gtk_widget_set_name(widget: int, name: string)
-    fn gtk_widget_has_css_class(widget: int, css_class: string) -> int
-    fn gtk_widget_set_cursor_from_name(widget: int, name: string)
-    fn gtk_widget_set_focusable(widget: int, focusable: int)
-    fn gtk_widget_has_focus(widget: int) -> int
-    fn gtk_widget_get_sensitive(widget: int) -> int
-    fn gtk_widget_get_visible(widget: int) -> int
-    fn gtk_widget_set_can_target(widget: int, can_target: int)
-    fn gtk_widget_set_overflow(widget: int, overflow: int)      ;; 0 = visible, 1 = hidden
-    fn gtk_widget_queue_draw(widget: int)
-end
-
-;; ── GtkButton / GtkToggleButton / GtkLinkButton ───────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_button_get_label(button: int) -> string
-    fn gtk_button_new_from_icon_name(icon_name: string) -> int
-    fn gtk_button_set_icon_name(button: int, icon_name: string)
-    fn gtk_button_set_has_frame(button: int, has_frame: int)
-    fn gtk_toggle_button_new_with_label(label: string) -> int
-    fn gtk_toggle_button_get_active(toggle: int) -> int
-    fn gtk_toggle_button_set_active(toggle: int, active: int)
-    fn gtk_toggle_button_set_group(toggle: int, group_leader: int)
-    fn gtk_link_button_new_with_label(uri: string, label: string) -> int
-    fn gtk_link_button_get_uri(link: int) -> string
-    fn gtk_link_button_set_uri(link: int, uri: string)
-end
-
-;; ── GtkLabel — dodatki ────────────────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_label_get_text(label: int) -> string
-    fn gtk_label_set_markup(label: int, markup: string)
-    fn gtk_label_set_selectable(label: int, selectable: int)
-    fn gtk_label_set_ellipsize(label: int, mode: int)           ;; 0 none 1 start 2 middle 3 end
-    fn gtk_label_set_max_width_chars(label: int, n_chars: int)
-    fn gtk_label_set_justify(label: int, justification: int)    ;; 0 left 1 right 2 center 3 fill
-    fn gtk_label_set_lines(label: int, lines: int)
-end
-
-;; ── GtkEntry / GtkPasswordEntry / GtkSearchEntry / GtkEditable — dodatki ──────
-
-extern static [c, "gtk4"] is
-    fn gtk_entry_set_visibility(entry: int, visible: int)
-    fn gtk_entry_set_max_length(entry: int, max_length: int)
-    fn gtk_entry_get_placeholder_text(entry: int) -> string
-    fn gtk_password_entry_new() -> int
-    fn gtk_password_entry_set_show_peek_icon(entry: int, show_peek_icon: int)
-    fn gtk_search_entry_new() -> int
-    fn gtk_editable_set_editable(editable: int, is_editable: int)
-    fn gtk_editable_get_editable(editable: int) -> int
-    fn gtk_editable_select_region(editable: int, start_pos: int, end_pos: int)
-    fn gtk_editable_set_position(editable: int, position: int)
-    fn gtk_editable_get_position(editable: int) -> int
-    fn gtk_editable_set_width_chars(editable: int, n_chars: int)
-end
-
-;; ── GtkSwitch ─────────────────────────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_switch_new() -> int
-    fn gtk_switch_get_active(sw: int) -> int
-    fn gtk_switch_set_active(sw: int, is_active: int)
-end
-
-;; ── GtkScale / GtkRange ───────────────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_scale_new_with_range(orientation: int, min: f64, max: f64, step: f64) -> int
-    fn gtk_scale_set_draw_value(scale: int, draw_value: int)
-    fn gtk_scale_set_digits(scale: int, digits: int)
-    fn gtk_scale_set_value_pos(scale: int, pos: int)            ;; 0 left 1 right 2 top 3 bottom
-    fn gtk_scale_add_mark(scale: int, value: f64, position: int, markup: string)
-    fn gtk_scale_clear_marks(scale: int)
-    fn gtk_range_get_value(range: int) -> f64
-    fn gtk_range_set_value(range: int, value: f64)
-    fn gtk_range_set_range(range: int, min: f64, max: f64)
-    fn gtk_range_set_increments(range: int, step: f64, page: f64)
-end
-
-;; ── GtkProgressBar / GtkLevelBar / GtkSpinner — dodatki ───────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_progress_bar_get_fraction(bar: int) -> f64
-    fn gtk_progress_bar_set_text(bar: int, text: string)
-    fn gtk_progress_bar_set_show_text(bar: int, show_text: int)
-    fn gtk_progress_bar_pulse(bar: int)
-    fn gtk_level_bar_new_for_interval(min_value: f64, max_value: f64) -> int
-    fn gtk_level_bar_get_value(bar: int) -> f64
-    fn gtk_level_bar_set_value(bar: int, value: f64)
-    fn gtk_spinner_new() -> int
-    fn gtk_spinner_start(spinner: int)
-    fn gtk_spinner_stop(spinner: int)
-    fn gtk_spinner_get_spinning(spinner: int) -> int
-end
-
-;; ── GtkImage / GtkPicture — dodatki ───────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_image_new_from_icon_name(icon_name: string) -> int
-    fn gtk_image_set_from_file(image: int, path: string)
-    fn gtk_image_set_from_icon_name(image: int, icon_name: string)
-    fn gtk_image_set_pixel_size(image: int, pixel_size: int)
-    fn gtk_image_clear(image: int)
-    fn gtk_picture_new_for_filename(path: string) -> int
-    fn gtk_picture_set_filename(picture: int, path: string)
-    fn gtk_picture_set_can_shrink(picture: int, can_shrink: int)
-    fn gtk_picture_set_content_fit(picture: int, content_fit: int)   ;; GTK >= 4.8: 0 fill 1 contain 2 cover 3 scale-down
-end
-
-;; ── GtkTextView / GtkTextBuffer ───────────────────────────────────────────────
-;; `GtkTextIter` to struktura C (80 B) przekazywana przez wskaznik — alokujemy
-;; ja `mem::alloc` w `gtk.h#` i podajemy jako `int`.
-
-extern static [c, "gtk4"] is
-    fn gtk_text_view_get_buffer(view: int) -> int
-    fn gtk_text_view_set_editable(view: int, setting: int)
-    fn gtk_text_view_set_wrap_mode(view: int, wrap_mode: int)   ;; 0 none 1 char 2 word 3 word-char
-    fn gtk_text_view_set_monospace(view: int, monospace: int)
-    fn gtk_text_view_set_cursor_visible(view: int, setting: int)
-    fn gtk_text_buffer_set_text(buffer: int, text: string, len: int)
-    fn gtk_text_buffer_insert_at_cursor(buffer: int, text: string, len: int)
-    fn gtk_text_buffer_get_start_iter(buffer: int, iter: int)
-    fn gtk_text_buffer_get_end_iter(buffer: int, iter: int)
-    fn gtk_text_buffer_get_text(buffer: int, start: int, end_iter: int, include_hidden: int) -> string
-    fn gtk_text_buffer_get_char_count(buffer: int) -> int
-    fn gtk_text_buffer_get_line_count(buffer: int) -> int
-    fn gtk_text_buffer_get_modified(buffer: int) -> int
-    fn gtk_text_buffer_set_modified(buffer: int, setting: int)
-end
-
-;; ── GtkScrolledWindow — dodatki ───────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_scrolled_window_set_policy(scrolled: int, hscrollbar_policy: int, vscrollbar_policy: int)   ;; 0 always 1 automatic 2 never 3 external
-    fn gtk_scrolled_window_set_min_content_width(scrolled: int, width: int)
-    fn gtk_scrolled_window_set_min_content_height(scrolled: int, height: int)
-    fn gtk_scrolled_window_set_max_content_height(scrolled: int, height: int)
-    fn gtk_scrolled_window_set_propagate_natural_height(scrolled: int, propagate: int)
-end
-
-;; ── GtkBox / GtkGrid — dodatki ────────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_box_prepend(box_: int, child: int)
-    fn gtk_box_reorder_child_after(box_: int, child: int, sibling: int)
-    fn gtk_grid_remove(grid: int, child: int)
-    fn gtk_grid_set_row_homogeneous(grid: int, homogeneous: int)
-    fn gtk_grid_set_column_homogeneous(grid: int, homogeneous: int)
-end
-
-;; ── GtkStack — dodatki ────────────────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_stack_add_named(stack: int, child: int, name: string) -> int
-    fn gtk_stack_remove(stack: int, child: int)
-    fn gtk_stack_get_visible_child(stack: int) -> int
-    fn gtk_stack_set_transition_type(stack: int, transition: int)
-    fn gtk_stack_set_transition_duration(stack: int, duration_ms: int)
-end
-
-;; ── GtkListBox — dodatki ──────────────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_list_box_select_row(list_box: int, row: int)
-    fn gtk_list_box_unselect_all(list_box: int)
-    fn gtk_list_box_get_row_at_index(list_box: int, index: int) -> int
-    fn gtk_list_box_insert(list_box: int, child: int, position: int)
-    fn gtk_list_box_prepend(list_box: int, child: int)
-    fn gtk_list_box_set_activate_on_single_click(list_box: int, single: int)
-end
-
-;; ── GtkDropDown / GtkStringList — dodatki ─────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_drop_down_set_enable_search(dropdown: int, enable_search: int)
-    fn gtk_string_list_get_string(list: int, position: int) -> string
-end
-
-extern static [c, "gio-2.0"] is
-    fn g_list_model_get_n_items(list: int) -> int
-end
-
-;; ── GtkNotebook ───────────────────────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_notebook_new() -> int
-    fn gtk_notebook_append_page(notebook: int, child: int, tab_label: int) -> int
-    fn gtk_notebook_remove_page(notebook: int, page_num: int)
-    fn gtk_notebook_get_current_page(notebook: int) -> int
-    fn gtk_notebook_set_current_page(notebook: int, page_num: int)
-    fn gtk_notebook_get_n_pages(notebook: int) -> int
-    fn gtk_notebook_set_tab_pos(notebook: int, pos: int)         ;; 0 left 1 right 2 top 3 bottom
-    fn gtk_notebook_set_scrollable(notebook: int, scrollable: int)
-end
-
-;; ── GtkPaned ──────────────────────────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_paned_new(orientation: int) -> int
-    fn gtk_paned_set_start_child(paned: int, child: int)
-    fn gtk_paned_set_end_child(paned: int, child: int)
-    fn gtk_paned_get_position(paned: int) -> int
-    fn gtk_paned_set_position(paned: int, position: int)
-    fn gtk_paned_set_wide_handle(paned: int, wide: int)
-end
-
-;; ── GtkRevealer / GtkExpander ─────────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_revealer_new() -> int
-    fn gtk_revealer_set_child(revealer: int, child: int)
-    fn gtk_revealer_set_reveal_child(revealer: int, reveal_child: int)
-    fn gtk_revealer_get_reveal_child(revealer: int) -> int
-    fn gtk_revealer_set_transition_type(revealer: int, transition: int)
-    fn gtk_revealer_set_transition_duration(revealer: int, duration_ms: int)
-    fn gtk_expander_new(label: string) -> int
-    fn gtk_expander_set_child(expander: int, child: int)
-    fn gtk_expander_set_label(expander: int, label: string)
-    fn gtk_expander_set_expanded(expander: int, expanded: int)
-    fn gtk_expander_get_expanded(expander: int) -> int
-end
-
-;; ── GtkHeaderBar / GtkActionBar ───────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_header_bar_new() -> int
-    fn gtk_header_bar_pack_start(bar: int, child: int)
-    fn gtk_header_bar_pack_end(bar: int, child: int)
-    fn gtk_header_bar_set_title_widget(bar: int, title_widget: int)
-    fn gtk_header_bar_set_show_title_buttons(bar: int, setting: int)
-    fn gtk_action_bar_new() -> int
-    fn gtk_action_bar_pack_start(bar: int, child: int)
-    fn gtk_action_bar_pack_end(bar: int, child: int)
-    fn gtk_action_bar_set_center_widget(bar: int, center_widget: int)
-end
-
-;; ── GtkFlowBox ────────────────────────────────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_flow_box_new() -> int
-    fn gtk_flow_box_append(flow_box: int, child: int)
-    fn gtk_flow_box_remove(flow_box: int, child: int)
-    fn gtk_flow_box_set_max_children_per_line(flow_box: int, n_children: int)
-    fn gtk_flow_box_set_min_children_per_line(flow_box: int, n_children: int)
-    fn gtk_flow_box_set_homogeneous(flow_box: int, homogeneous: int)
-    fn gtk_flow_box_set_row_spacing(flow_box: int, spacing: int)
-    fn gtk_flow_box_set_column_spacing(flow_box: int, spacing: int)
-    fn gtk_flow_box_set_selection_mode(flow_box: int, mode: int)
-end
-
-;; ── GtkCalendar + GDateTime ───────────────────────────────────────────────────
-;; `gtk_calendar_get_date` zwraca GDateTime* (transfer full) — `gtk.h#` zawsze
-;; zwalnia go przez `g_date_time_unref`.
-
-extern static [c, "gtk4"] is
-    fn gtk_calendar_new() -> int
-    fn gtk_calendar_get_date(calendar: int) -> int
-    fn gtk_calendar_mark_day(calendar: int, day: int)
-    fn gtk_calendar_clear_marks(calendar: int)
-end
-
-extern static [c, "glib-2.0"] is
-    fn g_date_time_get_year(datetime: int) -> int
-    fn g_date_time_get_month(datetime: int) -> int
-    fn g_date_time_get_day_of_month(datetime: int) -> int
-    fn g_date_time_unref(datetime: int)
-end
-
-;; ── GtkMenuButton / GtkPopover — dodatki ──────────────────────────────────────
-
-extern static [c, "gtk4"] is
-    fn gtk_menu_button_set_icon_name(menu_button: int, icon_name: string)
-    fn gtk_popover_set_autohide(popover: int, autohide: int)
-    fn gtk_popover_set_has_arrow(popover: int, has_arrow: int)
-end
-
-;; ── GdkClipboard (zapis tekstu; odczyt jest asynchroniczny = callback C) ──────
-
-extern static [c, "gtk4"] is
-    fn gdk_display_get_clipboard(display: int) -> int
-    fn gdk_clipboard_set_text(clipboard: int, text: string)
-end
-
-;; ── GtkSettings ───────────────────────────────────────────────────────────────
-;; (brak `g_object_set` — jest wariadyczny; motywy/ciemny tryb ustawiaj przez CSS
-;; albo zmienne srodowiskowe `GTK_THEME=Adwaita:dark`.)
-
-;; ── GLib — czas i spanie (timery w `App` bez sygnalow) ────────────────────────
-
-extern static [c, "glib-2.0"] is
-    fn g_get_monotonic_time() -> int         ;; mikrosekundy od startu (monotoniczny zegar)
-    fn g_usleep(microseconds: int)
-    ;; Bufor na `GtkTextIter` (2 x 80 B) — GLib-owy odpowiednik malloc/free,
-    ;; bez zadnego konfliktu z wbudowanym `malloc` kompilatora H#.
-    fn g_malloc0(n_bytes: int) -> int
-    fn g_free(mem: int)
-end
-
-;; Sygnaly GObject (0.4): kompilator H# zamienia nazwe zwyklej funkcji uzyta jako wartosc
-;; na prawdziwy wskaznik C, wiec callbacki sa zwyklymi funkcjami `fn nazwa(a: int, b: int) -> int`
-;; z gtk.h# (bez domkniec i bez zadnego kodu C). Callbacki tylko wrzucaja zdarzenie do
-;; kolejki GLib (GQueue); domkniecia uzytkownika sa wolane z `App::poll`, w glownym watku.
-;; Wszystkie callbacki zwracaja `int` (0), bo sygnaly typu `close-request` oczekuja gboolean.
-
-;; ── Rozszerzenie 0.3 — potrzebne aplikacjom „prawdziwym” (np. HackerOS Welcome) ──
-
-extern static [c, "gtk4"] is
-    fn gtk_button_set_child(button: int, child: int)
-    fn gtk_label_set_width_chars(label: int, n_chars: int)
-    fn gtk_widget_get_root(widget: int) -> int
-    fn gtk_search_entry_set_placeholder_text(entry: int, text: string)
-end
-
-extern static [c, "gio-2.0"] is
-    ;; (uri, GAppLaunchContext* = NULL, GError** = NULL) -> gboolean
-    fn g_app_info_launch_default_for_uri(uri: string, context: int, error: int) -> int
-end
-
-;; ── Rozszerzenie 0.4 — sygnaly, kolejka zdarzen, GtkFileDialog, libadwaita ────
-
-extern static [c, "gobject-2.0"] is
-    ;; (instance, "signal", GCallback, user_data, GClosureNotify = NULL, GConnectFlags = 0) -> handler id
-    fn g_signal_connect_data(instance: int, detailed_signal: string, handler: int, data: int, destroy: int, flags: int) -> int
-    fn g_signal_handler_disconnect(instance: int, handler_id: int)
-end
-
-extern static [c, "glib-2.0"] is
-    fn g_queue_new() -> int
-    fn g_queue_push_tail(queue: int, data: int)
-    fn g_queue_pop_head(queue: int) -> int
-    fn g_queue_is_empty(queue: int) -> int
-end
-
-extern static [c, "gio-2.0"] is
-    fn g_file_new_for_path(path: string) -> int
-    fn g_file_get_path(file: int) -> string
-end
-
-;; GtkFileDialog (GTK >= 4.10): wersje asynchroniczne dostaja callback
-;; GAsyncReadyCallback(source, result, user_data); `*_finish` wolamy pozniej z `App::poll`.
-extern static [c, "gtk4"] is
-    fn gtk_file_dialog_new() -> int
-    fn gtk_file_dialog_set_title(dialog: int, title: string)
-    fn gtk_file_dialog_set_accept_label(dialog: int, label: string)
-    fn gtk_file_dialog_set_initial_name(dialog: int, name: string)
-    fn gtk_file_dialog_set_initial_folder(dialog: int, folder: int)
-    fn gtk_file_dialog_save(dialog: int, parent: int, cancellable: int, cb: int, data: int)
-    fn gtk_file_dialog_save_finish(dialog: int, result: int, error: int) -> int
-    fn gtk_file_dialog_open(dialog: int, parent: int, cancellable: int, cb: int, data: int)
-    fn gtk_file_dialog_open_finish(dialog: int, result: int, error: int) -> int
-    fn gtk_file_dialog_select_folder(dialog: int, parent: int, cancellable: int, cb: int, data: int)
-    fn gtk_file_dialog_select_folder_finish(dialog: int, result: int, error: int) -> int
-end
-
-;; libadwaita (>= 1.5: AdwAboutDialog, AdwToolbarView, AdwSwitchRow)
-extern static [c, "adwaita-1"] is
-    fn adw_init()
-    fn adw_style_manager_get_default() -> int
-    fn adw_style_manager_set_color_scheme(manager: int, scheme: int)
-    fn adw_window_new() -> int
-    fn adw_window_set_content(window: int, content: int)
-    fn adw_toolbar_view_new() -> int
-    fn adw_toolbar_view_add_top_bar(view: int, bar: int)
-    fn adw_toolbar_view_add_bottom_bar(view: int, bar: int)
-    fn adw_toolbar_view_set_content(view: int, content: int)
-    fn adw_header_bar_new() -> int
-    fn adw_header_bar_set_title_widget(bar: int, widget: int)
-    fn adw_header_bar_pack_start(bar: int, widget: int)
-    fn adw_header_bar_pack_end(bar: int, widget: int)
-    fn adw_window_title_new(title: string, subtitle: string) -> int
-    fn adw_window_title_set_title(title: int, text: string)
-    fn adw_window_title_set_subtitle(title: int, text: string)
-    fn adw_toast_overlay_new() -> int
-    fn adw_toast_overlay_set_child(overlay: int, child: int)
-    fn adw_toast_overlay_add_toast(overlay: int, toast: int)
-    fn adw_toast_new(title: string) -> int
-    fn adw_toast_set_timeout(toast: int, seconds: int)
-    fn adw_clamp_new() -> int
-    fn adw_clamp_set_child(clamp: int, child: int)
-    fn adw_clamp_set_maximum_size(clamp: int, size: int)
-    fn adw_preferences_group_new() -> int
-    fn adw_preferences_group_set_title(group: int, title: string)
-    fn adw_preferences_group_set_description(group: int, description: string)
-    fn adw_preferences_group_add(group: int, child: int)
-    fn adw_action_row_new() -> int
-    fn adw_preferences_row_set_title(row: int, title: string)
-    fn adw_action_row_set_subtitle(row: int, subtitle: string)
-    fn adw_action_row_add_prefix(row: int, widget: int)
-    fn adw_action_row_add_suffix(row: int, widget: int)
-    fn adw_action_row_set_activatable_widget(row: int, widget: int)
-    fn adw_switch_row_new() -> int
-    fn adw_switch_row_get_active(row: int) -> int
-    fn adw_switch_row_set_active(row: int, active: int)
-    fn adw_combo_row_new() -> int
-    fn adw_combo_row_set_model(row: int, model: int)
-    fn adw_combo_row_get_selected(row: int) -> int
-    fn adw_combo_row_set_selected(row: int, position: int)
-    fn adw_status_page_new() -> int
-    fn adw_status_page_set_icon_name(page: int, icon: string)
-    fn adw_status_page_set_title(page: int, title: string)
-    fn adw_status_page_set_description(page: int, description: string)
-    fn adw_status_page_set_child(page: int, child: int)
-    fn adw_about_dialog_new() -> int
-    fn adw_about_dialog_set_application_name(dialog: int, name: string)
-    fn adw_about_dialog_set_application_icon(dialog: int, icon: string)
-    fn adw_about_dialog_set_developer_name(dialog: int, name: string)
-    fn adw_about_dialog_set_version(dialog: int, version: string)
-    fn adw_about_dialog_set_comments(dialog: int, comments: string)
-    fn adw_about_dialog_set_website(dialog: int, website: string)
-    fn adw_about_dialog_set_issue_url(dialog: int, url: string)
-    fn adw_about_dialog_set_support_url(dialog: int, url: string)
-    fn adw_about_dialog_set_copyright(dialog: int, copyright: string)
-    fn adw_about_dialog_set_license_type(dialog: int, license: int)
-    fn adw_dialog_present(dialog: int, parent: int)
-    fn adw_dialog_close(dialog: int) -> int
-end
-
-;; ══════════════════════════════════════════════════════════════════════════════
-;; ── Rozszerzenie 0.5 — libadwaita: widoki, wiersze, banner, dialogi ──────────
-;; Wszystko nadal `extern static [c, "..."]` (zero C). Wymaga libadwaita >= 1.5
-;; (sprawdzone symbol po symbolu z `nm -D libadwaita-1.so.0`).
-;; ══════════════════════════════════════════════════════════════════════════════
-
-extern static [c, "adwaita-1"] is
-    ;; AdwViewStack + AdwViewSwitcher / AdwViewSwitcherBar (nawigacja w naglowku)
-    fn adw_view_stack_new() -> int
-    fn adw_view_stack_add_titled_with_icon(stack: int, child: int, name: string, title: string, icon_name: string) -> int
-    fn adw_view_stack_set_visible_child_name(stack: int, name: string)
-    fn adw_view_stack_get_visible_child_name(stack: int) -> string
-    fn adw_view_switcher_new() -> int
-    fn adw_view_switcher_set_stack(switcher: int, stack: int)
-    fn adw_view_switcher_set_policy(switcher: int, policy: int)     ;; 0 = narrow, 1 = wide
-    fn adw_view_switcher_bar_new() -> int
-    fn adw_view_switcher_bar_set_stack(bar: int, stack: int)
-    fn adw_view_switcher_bar_set_reveal(bar: int, reveal: int)
-
-    ;; Wiersze z polem tekstowym (implementuja GtkEditable: gtk_editable_get_text dziala)
-    fn adw_entry_row_new() -> int
-    fn adw_entry_row_add_prefix(row: int, widget: int)
-    fn adw_entry_row_add_suffix(row: int, widget: int)
-    fn adw_password_entry_row_new() -> int
-
-    ;; AdwExpanderRow
-    fn adw_expander_row_new() -> int
-    fn adw_expander_row_add_row(row: int, child: int)
-    fn adw_expander_row_add_prefix(row: int, widget: int)
-    fn adw_expander_row_add_suffix(row: int, widget: int)
-    fn adw_expander_row_set_subtitle(row: int, subtitle: string)
-    fn adw_expander_row_set_expanded(row: int, expanded: int)
-    fn adw_expander_row_get_expanded(row: int) -> int
-
-    ;; AdwBanner
-    fn adw_banner_new(title: string) -> int
-    fn adw_banner_set_title(banner: int, title: string)
-    fn adw_banner_set_revealed(banner: int, revealed: int)
-    fn adw_banner_set_button_label(banner: int, label: string)
-
-    ;; AdwDialog (adaptacyjne okno dialogowe, libadwaita >= 1.5)
-    fn adw_dialog_new() -> int
-    fn adw_dialog_set_title(dialog: int, title: string)
-    fn adw_dialog_set_child(dialog: int, child: int)
-    fn adw_dialog_set_content_width(dialog: int, width: int)
-    fn adw_dialog_set_content_height(dialog: int, height: int)
-    fn adw_dialog_set_follows_content_size(dialog: int, follows: int)
-
-    ;; AdwButtonContent (ikona + tekst w przycisku)
-    fn adw_button_content_new() -> int
-    fn adw_button_content_set_label(content: int, label: string)
-    fn adw_button_content_set_icon_name(content: int, icon_name: string)
-
-    ;; AdwPreferencesPage / Group / Row — dodatki
-    fn adw_preferences_page_new() -> int
-    fn adw_preferences_page_add(page: int, group: int)
-    fn adw_preferences_group_remove(group: int, child: int)
-    fn adw_preferences_row_set_use_markup(row: int, use_markup: int)
-    fn adw_action_row_set_subtitle_lines(row: int, lines: int)
-    fn adw_action_row_set_icon_name(row: int, icon_name: string)
-    fn adw_toast_set_priority(toast: int, priority: int)             ;; 0 = normal, 1 = high
-end
-
-;; GtkWidget / GtkEditable / GtkListBox — dodatki 0.5
-extern static [c, "gtk4"] is
-    fn gtk_list_box_set_placeholder(list_box: int, placeholder: int)
+;; ── AlertDialog (GTK >= 4.10) ───────────────────────────────────────────────
+
+;; GtkAlertDialog (GTK >= 4.10) — prosty komunikat, bez odczytu wyboru.
+;; Zwraca sie od razu (fire-and-forget). Jesli potrzebujesz przyciskow z odczytem
+;; wyboru uzytkownika, uzyj `App::confirm` (asynchroniczny `GAsyncReadyCallback`).
+pub fn show_alert(parent: Window, message: string, detail: string) is
+    let safe_message: string = strings::replace_all(message, "%", "%%")
+    let dialog: int = gtk_ffi::gtk_alert_dialog_new(safe_message)
+    gtk_ffi::gtk_alert_dialog_set_modal(dialog, 1)
+    if detail.len() > 0 is
+        gtk_ffi::gtk_alert_dialog_set_detail(dialog, detail)
+    end
+    gtk_ffi::gtk_alert_dialog_show(dialog, parent.handle)
 end
