@@ -1,0 +1,101 @@
+struct Stack is
+    pub handle: int
+end
+
+pub fn new_stack() -> Stack is
+    return Stack { handle: gtk_ffi::gtk_stack_new() }
+end
+
+impl Stack is
+    fn add_titled(self, child: int, name: string, title: string) is
+        gtk_ffi::gtk_stack_add_titled(self.handle, child, name, title)
+    end
+
+    ;; Strona bez tytulu (nie pojawi sie w `StackSwitcher`).
+    fn add_named(self, child: int, name: string) is
+        gtk_ffi::gtk_stack_add_named(self.handle, child, name)
+    end
+
+    fn remove(self, child: int) is
+        gtk_ffi::gtk_stack_remove(self.handle, child)
+    end
+
+    fn set_visible(self, name: string) is
+        gtk_ffi::gtk_stack_set_visible_child_name(self.handle, name)
+    end
+
+    fn visible(self) -> string is
+        return gtk_ffi::gtk_stack_get_visible_child_name(self.handle)
+    end
+
+    ;; Uchwyt aktualnie widocznej strony (0 gdy brak).
+    fn visible_child(self) -> int is
+        return gtk_ffi::gtk_stack_get_visible_child(self.handle)
+    end
+
+    ;; Patrz `gtk::transition_*()`.
+    fn set_transition(self, transition: int) is
+        gtk_ffi::gtk_stack_set_transition_type(self.handle, transition)
+    end
+
+    fn set_transition_duration(self, duration_ms: int) is
+        gtk_ffi::gtk_stack_set_transition_duration(self.handle, duration_ms)
+    end
+end
+
+;; ── StackSwitcher ───────────────────────────────────────────────────────────
+
+struct StackSwitcher is
+    pub handle: int
+end
+
+pub fn new_stack_switcher(stack: Stack) -> StackSwitcher is
+    let h: int = gtk_ffi::gtk_stack_switcher_new()
+    gtk_ffi::gtk_stack_switcher_set_stack(h, stack.handle)
+    return StackSwitcher { handle: h }
+end
+
+;; ── Notebook ────────────────────────────────────────────────────────────────
+
+struct Notebook is
+    pub handle: int
+end
+
+pub fn new_notebook() -> Notebook is
+    return Notebook { handle: gtk_ffi::gtk_notebook_new() }
+end
+
+impl Notebook is
+    ;; Dodaje strone z tytulem w zakladce; zwraca jej indeks.
+    fn append(self, child: int, title: string) -> int is
+        let tab: int = gtk_ffi::gtk_label_new(title)
+        return gtk::c_int(gtk_ffi::gtk_notebook_append_page(self.handle, child, tab))
+    end
+
+    fn remove_page(self, index: int) is
+        gtk_ffi::gtk_notebook_remove_page(self.handle, index)
+    end
+
+    ;; Indeks aktywnej strony (0-based), `-1` gdy notebook jest pusty.
+    fn current(self) -> int is
+        return gtk::c_int(gtk_ffi::gtk_notebook_get_current_page(self.handle))
+    end
+
+    fn set_current(self, index: int) is
+        gtk_ffi::gtk_notebook_set_current_page(self.handle, index)
+    end
+
+    fn count(self) -> int is
+        return gtk::c_int(gtk_ffi::gtk_notebook_get_n_pages(self.handle))
+    end
+
+    ;; Patrz `gtk::position_*()`.
+    fn set_tab_pos(self, pos: int) is
+        gtk_ffi::gtk_notebook_set_tab_pos(self.handle, pos)
+    end
+
+    ;; `true`: przy wielu zakladkach pojawiaja sie strzalki przewijania.
+    fn set_scrollable(self, scrollable: bool) is
+        gtk_ffi::gtk_notebook_set_scrollable(self.handle, gtk::b2i(scrollable))
+    end
+end
