@@ -1,0 +1,53 @@
+extern static [c, "gtk4"] is
+    fn gtk_widget_show(widget: int)
+    fn gtk_widget_hide(widget: int)
+    fn gtk_widget_set_visible(widget: int, visible: int)
+    fn gtk_widget_set_sensitive(widget: int, sensitive: int)
+    fn gtk_widget_set_size_request(widget: int, width: int, height: int)
+    fn gtk_widget_set_margin_top(widget: int, margin: int)
+    fn gtk_widget_set_margin_bottom(widget: int, margin: int)
+    fn gtk_widget_set_margin_start(widget: int, margin: int)
+    fn gtk_widget_set_margin_end(widget: int, margin: int)
+    fn gtk_widget_set_halign(widget: int, align: int)
+    fn gtk_widget_set_valign(widget: int, align: int)
+    fn gtk_widget_set_hexpand(widget: int, expand: int)
+    fn gtk_widget_set_vexpand(widget: int, expand: int)
+    fn gtk_widget_add_css_class(widget: int, css_class: string)
+    fn gtk_widget_remove_css_class(widget: int, css_class: string)
+    fn gtk_widget_grab_focus(widget: int) -> int
+    fn gtk_widget_get_state_flags(widget: int) -> int
+    fn gtk_widget_is_visible(widget: int) -> int
+    ;; `1` dopoki widget jest faktycznie zmapowany na ekran; po zniszczeniu
+    ;; okna (np. domyslna reakcja GTK na klik w „X”) spada do `0` — patrz
+    ;; `App::on_window_close` w gtk.h# po wyjasnienie, jak to (bezpiecznie,
+    ;; dzieki wczesniejszemu `g_object_ref`) wykorzystujemy bez sygnalow.
+    fn gtk_widget_get_mapped(widget: int) -> int
+end
+
+;; ── GtkWidget — dodatki ───────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_widget_set_tooltip_text(widget: int, text: string)
+    fn gtk_widget_get_tooltip_text(widget: int) -> string
+    fn gtk_widget_set_opacity(widget: int, opacity: f64)
+    fn gtk_widget_get_opacity(widget: int) -> f64
+    fn gtk_widget_get_width(widget: int) -> int
+    fn gtk_widget_get_height(widget: int) -> int
+    fn gtk_widget_get_parent(widget: int) -> int
+    fn gtk_widget_get_first_child(widget: int) -> int
+    fn gtk_widget_get_next_sibling(widget: int) -> int
+    fn gtk_widget_set_name(widget: int, name: string)
+    fn gtk_widget_has_css_class(widget: int, css_class: string) -> int
+    fn gtk_widget_set_cursor_from_name(widget: int, name: string)
+    fn gtk_widget_set_focusable(widget: int, focusable: int)
+    fn gtk_widget_has_focus(widget: int) -> int
+    fn gtk_widget_get_sensitive(widget: int) -> int
+    fn gtk_widget_get_visible(widget: int) -> int
+    fn gtk_widget_set_can_target(widget: int, can_target: int)
+    fn gtk_widget_set_overflow(widget: int, overflow: int)      ;; 0 = visible, 1 = hidden
+    fn gtk_widget_queue_draw(widget: int)
+end
+
+extern static [c, "gtk4"] is
+    fn gtk_widget_get_root(widget: int) -> int
+end
