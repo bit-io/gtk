@@ -1,0 +1,161 @@
+struct ToolbarView is
+    pub handle: int
+end
+
+struct AdwHeaderBar is
+    pub handle: int
+end
+
+struct WindowTitle is
+    pub handle: int
+end
+
+struct ToastOverlay is
+    pub handle: int
+end
+
+struct Clamp is
+    pub handle: int
+end
+
+struct PrefGroup is
+    pub handle: int
+end
+
+struct ActionRow is
+    pub handle: int
+end
+
+struct StatusPage is
+    pub handle: int
+end
+
+;; Inicjalizacja libadwaita — wolaj PO `init_gtk()`, przed budowaniem okna.
+pub fn init_adw() is
+    gtk_ffi::adw_init()
+end
+
+;; Wymusza ciemny motyw przez AdwStyleManager (zamiast zmiennej GTK_THEME).
+pub fn set_color_scheme(scheme: int) is
+    let m: int = gtk_ffi::adw_style_manager_get_default()
+    gtk_ffi::adw_style_manager_set_color_scheme(m, scheme)
+end
+
+;; Okno AdwWindow (nie ma `set_child` / `set_titlebar` — uzyj `Window::set_content`).
+pub fn new_adw_window(title: string, width: int, height: int) -> gtk::Window is
+    let h: int = gtk_ffi::adw_window_new()
+    gtk_ffi::gtk_window_set_title(h, title)
+    gtk_ffi::gtk_window_set_default_size(h, width, height)
+    return gtk::Window { handle: h }
+end
+
+pub fn new_toolbar_view() -> ToolbarView is
+    return ToolbarView { handle: gtk_ffi::adw_toolbar_view_new() }
+end
+
+pub fn new_adw_header_bar() -> AdwHeaderBar is
+    return AdwHeaderBar { handle: gtk_ffi::adw_header_bar_new() }
+end
+
+pub fn new_window_title(title: string, subtitle: string) -> WindowTitle is
+    return WindowTitle { handle: gtk_ffi::adw_window_title_new(title, subtitle) }
+end
+
+pub fn new_toast_overlay() -> ToastOverlay is
+    return ToastOverlay { handle: gtk_ffi::adw_toast_overlay_new() }
+end
+
+pub fn new_clamp(max_width: int) -> Clamp is
+    let h: int = gtk_ffi::adw_clamp_new()
+    gtk_ffi::adw_clamp_set_maximum_size(h, max_width)
+    return Clamp { handle: h }
+end
+
+pub fn new_pref_group(title: string, description: string) -> PrefGroup is
+    let h: int = gtk_ffi::adw_preferences_group_new()
+    if title != "" is gtk_ffi::adw_preferences_group_set_title(h, title) end
+    if description != "" is gtk_ffi::adw_preferences_group_set_description(h, description) end
+    return PrefGroup { handle: h }
+end
+
+pub fn new_action_row(title: string, subtitle: string) -> ActionRow is
+    let h: int = gtk_ffi::adw_action_row_new()
+    gtk_ffi::adw_preferences_row_set_title(h, title)
+    if subtitle != "" is gtk_ffi::adw_action_row_set_subtitle(h, subtitle) end
+    return ActionRow { handle: h }
+end
+
+pub fn new_status_page(icon: string, title: string, description: string) -> StatusPage is
+    let h: int = gtk_ffi::adw_status_page_new()
+    if icon != "" is gtk_ffi::adw_status_page_set_icon_name(h, icon) end
+    gtk_ffi::adw_status_page_set_title(h, title)
+    if description != "" is gtk_ffi::adw_status_page_set_description(h, description) end
+    return StatusPage { handle: h }
+end
+
+;; Krotki komunikat „toast” na dole okna (timeout w sekundach; 0 = az do zamkniecia).
+pub fn toast(overlay: ToastOverlay, message: string, timeout_s: int) is
+    let t: int = gtk_ffi::adw_toast_new(message)
+    gtk_ffi::adw_toast_set_timeout(t, timeout_s)
+    gtk_ffi::adw_toast_overlay_add_toast(overlay.handle, t)
+end
+
+;; Natywne okno „O programie” (AdwAboutDialog, libadwaita >= 1.5).
+pub fn show_about_dialog(parent: gtk::Window, name: string, icon: string, developer: string,
+                         version: string, comments: string, website: string,
+                         issue_url: string, support_url: string, copyright: string, license: int) is
+    let d: int = gtk_ffi::adw_about_dialog_new()
+    gtk_ffi::adw_about_dialog_set_application_name(d, name)
+    if icon != "" is gtk_ffi::adw_about_dialog_set_application_icon(d, icon) end
+    gtk_ffi::adw_about_dialog_set_developer_name(d, developer)
+    gtk_ffi::adw_about_dialog_set_version(d, version)
+    gtk_ffi::adw_about_dialog_set_comments(d, comments)
+    gtk_ffi::adw_about_dialog_set_website(d, website)
+    gtk_ffi::adw_about_dialog_set_issue_url(d, issue_url)
+    gtk_ffi::adw_about_dialog_set_support_url(d, support_url)
+    gtk_ffi::adw_about_dialog_set_copyright(d, copyright)
+    gtk_ffi::adw_about_dialog_set_license_type(d, license)
+    gtk_ffi::adw_dialog_present(d, parent.handle)
+end
+
+impl ToolbarView is
+    fn add_top_bar(self, bar: int) is gtk_ffi::adw_toolbar_view_add_top_bar(self.handle, bar) end
+    fn add_bottom_bar(self, bar: int) is gtk_ffi::adw_toolbar_view_add_bottom_bar(self.handle, bar) end
+    fn set_content(self, content: int) is gtk_ffi::adw_toolbar_view_set_content(self.handle, content) end
+end
+
+impl AdwHeaderBar is
+    fn set_title_widget(self, w: int) is gtk_ffi::adw_header_bar_set_title_widget(self.handle, w) end
+    fn pack_start(self, w: int) is gtk_ffi::adw_header_bar_pack_start(self.handle, w) end
+    fn pack_end(self, w: int) is gtk_ffi::adw_header_bar_pack_end(self.handle, w) end
+end
+
+impl WindowTitle is
+    fn set_title(self, text: string) is gtk_ffi::adw_window_title_set_title(self.handle, text) end
+    fn set_subtitle(self, text: string) is gtk_ffi::adw_window_title_set_subtitle(self.handle, text) end
+end
+
+impl ToastOverlay is
+    fn set_child(self, child: int) is gtk_ffi::adw_toast_overlay_set_child(self.handle, child) end
+end
+
+impl Clamp is
+    fn set_child(self, child: int) is gtk_ffi::adw_clamp_set_child(self.handle, child) end
+end
+
+impl PrefGroup is
+    fn add(self, row: int) is gtk_ffi::adw_preferences_group_add(self.handle, row) end
+end
+
+impl ActionRow is
+    fn add_prefix(self, w: int) is gtk_ffi::adw_action_row_add_prefix(self.handle, w) end
+    fn add_suffix(self, w: int) is gtk_ffi::adw_action_row_add_suffix(self.handle, w) end
+    fn set_subtitle(self, text: string) is gtk_ffi::adw_action_row_set_subtitle(self.handle, text) end
+    fn set_title(self, text: string) is gtk_ffi::adw_preferences_row_set_title(self.handle, text) end
+    fn set_activatable_widget(self, w: int) is gtk_ffi::adw_action_row_set_activatable_widget(self.handle, w) end
+end
+
+impl StatusPage is
+    fn set_child(self, child: int) is gtk_ffi::adw_status_page_set_child(self.handle, child) end
+    fn set_description(self, text: string) is gtk_ffi::adw_status_page_set_description(self.handle, text) end
+end
