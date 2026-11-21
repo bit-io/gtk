@@ -1,0 +1,66 @@
+struct SearchBar is
+    pub handle: int
+end
+
+pub fn new_search_bar() -> SearchBar is
+    return SearchBar { handle: gtk_ffi::gtk_search_bar_new() }
+end
+
+impl SearchBar is
+    fn set_child(self, child: int) is
+        gtk_ffi::gtk_search_bar_set_child(self.handle, child)
+    end
+
+    ;; Podpina pole (SearchEntry/Entry): wpisywanie otwiera pasek, Escape go zamyka.
+    fn connect_entry(self, entry: int) is
+        gtk_ffi::gtk_search_bar_connect_entry(self.handle, entry)
+    end
+
+    fn set_search_mode(self, on: bool) is
+        gtk_ffi::gtk_search_bar_set_search_mode(self.handle, gtk::b2i(on))
+    end
+
+    fn is_search_mode(self) -> bool is
+        return gtk::c_int(gtk_ffi::gtk_search_bar_get_search_mode(self.handle)) != 0
+    end
+
+    fn set_show_close_button(self, show: bool) is
+        gtk_ffi::gtk_search_bar_set_show_close_button(self.handle, gtk::b2i(show))
+    end
+end
+
+;; ── Fixed ───────────────────────────────────────────────────────────────────────────
+;; Kontener z bezwzglednym pozycjonowaniem (x, y w pikselach) — do prostych plansz i gier.
+struct Fixed is
+    pub handle: int
+end
+
+pub fn new_fixed() -> Fixed is
+    return Fixed { handle: gtk_ffi::gtk_fixed_new() }
+end
+
+impl Fixed is
+    fn put(self, child: int, x: f64, y: f64) is
+        gtk_ffi::gtk_fixed_put(self.handle, child, x, y)
+    end
+
+    fn move_to(self, child: int, x: f64, y: f64) is
+        gtk_ffi::gtk_fixed_move(self.handle, child, x, y)
+    end
+end
+
+;; ── WindowHandle ──────────────────────────────────────────────────────────────────
+;; Owija widget tak, ze mozna za niego przeciagac okno (wlasny pasek tytulu bez HeaderBar).
+struct WindowHandle is
+    pub handle: int
+end
+
+pub fn new_window_handle() -> WindowHandle is
+    return WindowHandle { handle: gtk_ffi::gtk_window_handle_new() }
+end
+
+impl WindowHandle is
+    fn set_child(self, child: int) is
+        gtk_ffi::gtk_window_handle_set_child(self.handle, child)
+    end
+end
