@@ -1,0 +1,215 @@
+use "std -> env" from "env"
+
+;; bool -> gboolean
+fn b2i(b: bool) -> int is
+    let r: int = if b then 1 else 0
+    return r
+end
+
+;; FFI zwraca `gint` jako 64-bitowe `int` bez rozszerzenia znaku: `-1` wraca jako
+;; 4294967295. Ta funkcja przywraca znak (dotyczy wynikow typu `gint`, np. numer
+;; strony / pozycja / szerokosc; `guint` zostaje bez zmian).
+fn c_int(v: int) -> int is
+    if v >= 2147483648 is return v - 4294967296 end
+    return v
+end
+
+;; Wywolaj raz, przed stworzeniem jakiegokolwiek widgetu.
+pub fn init_gtk() is
+    gtk_ffi::gtk_init()
+end
+
+pub fn show(handle: int) is gtk_ffi::gtk_widget_show(handle) end
+pub fn hide(handle: int) is gtk_ffi::gtk_widget_hide(handle) end
+
+pub fn set_visible(handle: int, visible: bool) is
+    gtk_ffi::gtk_widget_set_visible(handle, b2i(visible))
+end
+
+pub fn is_visible(handle: int) -> bool is
+    return gtk_ffi::gtk_widget_get_visible(handle) != 0
+end
+
+pub fn set_sensitive(handle: int, sensitive: bool) is
+    gtk_ffi::gtk_widget_set_sensitive(handle, b2i(sensitive))
+end
+
+pub fn is_sensitive(handle: int) -> bool is
+    return gtk_ffi::gtk_widget_get_sensitive(handle) != 0
+end
+
+pub fn set_size(handle: int, width: int, height: int) is
+    gtk_ffi::gtk_widget_set_size_request(handle, width, height)
+end
+
+pub fn set_margin(handle: int, margin: int) is
+    gtk_ffi::gtk_widget_set_margin_top(handle, margin)
+    gtk_ffi::gtk_widget_set_margin_bottom(handle, margin)
+    gtk_ffi::gtk_widget_set_margin_start(handle, margin)
+    gtk_ffi::gtk_widget_set_margin_end(handle, margin)
+end
+
+;; Osobne marginesy: gora, dol, poczatek (lewy w LTR), koniec (prawy w LTR).
+pub fn set_margins(handle: int, top: int, bottom: int, start: int, end_: int) is
+    gtk_ffi::gtk_widget_set_margin_top(handle, top)
+    gtk_ffi::gtk_widget_set_margin_bottom(handle, bottom)
+    gtk_ffi::gtk_widget_set_margin_start(handle, start)
+    gtk_ffi::gtk_widget_set_margin_end(handle, end_)
+end
+
+pub fn set_align(handle: int, halign: int, valign: int) is
+    gtk_ffi::gtk_widget_set_halign(handle, halign)
+    gtk_ffi::gtk_widget_set_valign(handle, valign)
+end
+
+pub fn set_expand(handle: int, hexpand: bool, vexpand: bool) is
+    gtk_ffi::gtk_widget_set_hexpand(handle, b2i(hexpand))
+    gtk_ffi::gtk_widget_set_vexpand(handle, b2i(vexpand))
+end
+
+pub fn add_css_class(handle: int, class_name: string) is
+    gtk_ffi::gtk_widget_add_css_class(handle, class_name)
+end
+
+pub fn remove_css_class(handle: int, class_name: string) is
+    gtk_ffi::gtk_widget_remove_css_class(handle, class_name)
+end
+
+pub fn has_css_class(handle: int, class_name: string) -> bool is
+    return gtk_ffi::gtk_widget_has_css_class(handle, class_name) != 0
+end
+
+pub fn grab_focus(handle: int) is
+    gtk_ffi::gtk_widget_grab_focus(handle)
+end
+
+pub fn has_focus(handle: int) -> bool is
+    return gtk_ffi::gtk_widget_has_focus(handle) != 0
+end
+
+pub fn set_focusable(handle: int, focusable: bool) is
+    gtk_ffi::gtk_widget_set_focusable(handle, b2i(focusable))
+end
+
+pub fn set_tooltip(handle: int, text: string) is
+    gtk_ffi::gtk_widget_set_tooltip_text(handle, text)
+end
+
+pub fn widget_tooltip(handle: int) -> string is
+    return gtk_ffi::gtk_widget_get_tooltip_text(handle)
+end
+
+;; 0.0 = calkiem przezroczysty, 1.0 = pelny kolor.
+pub fn set_opacity(handle: int, opacity: f64) is
+    gtk_ffi::gtk_widget_set_opacity(handle, opacity)
+end
+
+pub fn widget_opacity(handle: int) -> f64 is
+    return gtk_ffi::gtk_widget_get_opacity(handle)
+end
+
+;; Nazwa widgetu = selektor CSS `#nazwa`.
+pub fn set_name(handle: int, name: string) is
+    gtk_ffi::gtk_widget_set_name(handle, name)
+end
+
+;; Nazwa kursora CSS: "pointer", "text", "wait", "not-allowed", "grab" ...
+pub fn set_cursor(handle: int, cursor_name: string) is
+    gtk_ffi::gtk_widget_set_cursor_from_name(handle, cursor_name)
+end
+
+;; Przycina zawartosc do granic widgetu (np. zaokraglone rogi z CSS).
+pub fn set_clip(handle: int, clip: bool) is
+    gtk_ffi::gtk_widget_set_overflow(handle, b2i(clip))
+end
+
+;; Czy widget w ogole reaguje na mysz/dotyk (false = klik "przechodzi" pod spod).
+pub fn set_can_target(handle: int, can_target: bool) is
+    gtk_ffi::gtk_widget_set_can_target(handle, b2i(can_target))
+end
+
+;; Aktualne wymiary przydzielone widgetowi (0 zanim okno zostanie pokazane).
+pub fn widget_width(handle: int) -> int is
+    return c_int(gtk_ffi::gtk_widget_get_width(handle))
+end
+
+pub fn widget_height(handle: int) -> int is
+    return c_int(gtk_ffi::gtk_widget_get_height(handle))
+end
+
+;; Uchwyt rodzica (0 gdy brak).
+pub fn widget_parent(handle: int) -> int is
+    return gtk_ffi::gtk_widget_get_parent(handle)
+end
+
+pub fn queue_draw(handle: int) is
+    gtk_ffi::gtk_widget_queue_draw(handle)
+end
+
+;; Zapis tekstu do schowka systemowego. Odczyt w GTK4 jest asynchroniczny
+;; (`GAsyncReadyCallback` = C-owy wskaznik funkcji), wiec poza zakresem 100% H#.
+pub fn clipboard_set_text(text: string) is
+    let display: int = gtk_ffi::gdk_display_get_default()
+    let clipboard: int = gtk_ffi::gdk_display_get_clipboard(display)
+    gtk_ffi::gdk_clipboard_set_text(clipboard, text)
+end
+
+pub fn style_priority_application() -> int is return 600 end
+pub fn style_priority_user()        -> int is return 800 end
+
+;; Wczytuje arkusz CSS z tekstu i podpina go pod domyslny display —
+;; obejmie od razu wszystkie okna aplikacji.
+pub fn load_css(css: string) is
+    let provider: int = gtk_ffi::gtk_css_provider_new()
+    gtk_ffi::gtk_css_provider_load_from_string(provider, css)
+    let display: int = gtk_ffi::gdk_display_get_default()
+    gtk_ffi::gtk_style_context_add_provider_for_display(display, provider, style_priority_application())
+end
+
+;; Jak `load_css`, ale wczytuje arkusz z pliku `.css` na dysku.
+pub fn load_css_file(path: string) is
+    let provider: int = gtk_ffi::gtk_css_provider_new()
+    gtk_ffi::gtk_css_provider_load_from_path(provider, path)
+    let display: int = gtk_ffi::gdk_display_get_default()
+    gtk_ffi::gtk_style_context_add_provider_for_display(display, provider, style_priority_application())
+end
+
+;; (0.3) Otwiera adres (http/https/file/mailto...) w domyslnej aplikacji systemu
+;; przez `g_app_info_launch_default_for_uri` (synchronicznie, bez callbacku).
+;; Zwraca `true`, gdy system przyjal zadanie.
+pub fn open_uri(uri: string) -> bool is
+    return gtk_ffi::g_app_info_launch_default_for_uri(uri, 0, 0) != 0
+end
+
+;; (0.3) Ciemny motyw GTK bez libadwaita: ustawia GTK_THEME, jesli uzytkownik
+;; nie wybral wlasnego. Wolac PRZED `gtk::init_gtk()`.
+pub fn prefer_dark() is
+    if env::get("GTK_THEME") == "" is
+        env::set("GTK_THEME", "Adwaita:dark")
+    end
+end
+
+;; (0.3) Dodatkowa referencja na widget (g_object_ref) — widget zostaje poprawna pamiecia
+;; nawet po usunieciu z drzewa. Uzyj, gdy zalozony timer moze dotknac widgetu, ktory
+;; uzytkownik w miedzyczasie zniszczyl; po zakonczeniu zadania wywolaj `release`.
+pub fn keep(handle: int) is
+    gtk_ffi::g_object_ref(handle)
+end
+
+pub fn release(handle: int) is
+    gtk_ffi::g_object_unref(handle)
+end
+
+;; (0.3) Nawigacja po drzewie widgetow (0 = brak).
+pub fn first_child(handle: int) -> int is
+    return gtk_ffi::gtk_widget_get_first_child(handle)
+end
+
+pub fn next_sibling(handle: int) -> int is
+    return gtk_ffi::gtk_widget_get_next_sibling(handle)
+end
+
+;; (0.3) Widget -> okno-korzen (handle `GtkRoot`), 0 gdy widget nie jest jeszcze w oknie.
+pub fn widget_root(handle: int) -> int is
+    return gtk_ffi::gtk_widget_get_root(handle)
+end
