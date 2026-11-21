@@ -1,0 +1,190 @@
+impl gtk_App is
+    ;; (0.3) `unwatch` dla `handle` i WSZYSTKICH jego potomkow. Wolaj przed
+    ;; `Box::clear` / usunieciem calego poddrzewa, w ktorym rejestrowano zdarzenia.
+    fn unwatch_tree(self, handle: int) is
+        self.unwatch(handle)
+        let mut c: int = gtk_ffi::gtk_widget_get_first_child(handle)
+        while c != 0 is
+            self.unwatch_tree(c)
+            c = gtk_ffi::gtk_widget_get_next_sibling(c)
+        end
+    end
+
+    ;; Przestaje obserwowac widget `handle` we WSZYSTKICH rodzajach zdarzen.
+    ;; Wywolaj to PRZED zniszczeniem/usunieciem widgetu, ktory byl obserwowany —
+    ;; odpytywanie zniszczonego widgetu bylo by odczytem zwolnionej pamieci.
+    fn unwatch(self, handle: int) is
+        self.unwatch_ext(handle)
+        let mut i: int = 0
+        i = 0
+        while i < self.btn_widget.len() is
+            if self.btn_widget[i] == handle is
+                self.btn_widget[i] = 0
+                if self.btn_sig[i] != 0 is
+                    gtk_ffi::g_signal_handler_disconnect(handle, self.btn_sig[i])
+                    self.btn_sig[i] = 0
+                end
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.press_widget.len() is
+            if self.press_widget[i] == handle is
+                self.press_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.chk_widget.len() is
+            if self.chk_widget[i] == handle is
+                self.chk_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.tgl_widget.len() is
+            if self.tgl_widget[i] == handle is
+                self.tgl_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.swt_widget.len() is
+            if self.swt_widget[i] == handle is
+                self.swt_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.entry_widget.len() is
+            if self.entry_widget[i] == handle is
+                self.entry_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.hover_widget.len() is
+            if self.hover_widget[i] == handle is
+                self.hover_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.focus_widget.len() is
+            if self.focus_widget[i] == handle is
+                self.focus_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.submit_widget.len() is
+            if self.submit_widget[i] == handle is
+                self.submit_widget[i] = 0
+                if self.submit_sig[i] != 0 is
+                    gtk_ffi::g_signal_handler_disconnect(handle, self.submit_sig[i])
+                    self.submit_sig[i] = 0
+                end
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.listbox_widget.len() is
+            if self.listbox_widget[i] == handle is
+                self.listbox_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.dropdown_widget.len() is
+            if self.dropdown_widget[i] == handle is
+                self.dropdown_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.stack_widget.len() is
+            if self.stack_widget[i] == handle is
+                self.stack_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.nb_widget.len() is
+            if self.nb_widget[i] == handle is
+                self.nb_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.win_widget.len() is
+            if self.win_widget[i] == handle is
+                self.win_widget[i] = 0
+                gtk_ffi::g_object_unref(handle)
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.wact_widget.len() is
+            if self.wact_widget[i] == handle is
+                self.wact_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.resize_widget.len() is
+            if self.resize_widget[i] == handle is
+                self.resize_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.spin_widget.len() is
+            if self.spin_widget[i] == handle is
+                self.spin_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.scale_widget.len() is
+            if self.scale_widget[i] == handle is
+                self.scale_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.paned_widget.len() is
+            if self.paned_widget[i] == handle is
+                self.paned_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.expander_widget.len() is
+            if self.expander_widget[i] == handle is
+                self.expander_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.reveal_widget.len() is
+            if self.reveal_widget[i] == handle is
+                self.reveal_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.tview_widget.len() is
+            if self.tview_widget[i] == handle is
+                self.tview_widget[i] = 0
+            end
+            i += 1
+        end
+        i = 0
+        while i < self.cal_widget.len() is
+            if self.cal_widget[i] == handle is
+                self.cal_widget[i] = 0
+            end
+            i += 1
+        end
+    end
+end
