@@ -1,0 +1,85 @@
+extern static [c, "gtk4"] is
+    fn gtk_window_new() -> int
+    fn gtk_window_set_title(window: int, title: string)
+    fn gtk_window_set_default_size(window: int, width: int, height: int)
+    fn gtk_window_set_resizable(window: int, resizable: int)
+    fn gtk_window_set_child(window: int, child: int)
+    fn gtk_window_present(window: int)
+    fn gtk_window_destroy(window: int)
+    fn gtk_window_set_modal(window: int, modal: int)
+    fn gtk_window_set_decorated(window: int, decorated: int)
+    fn gtk_window_fullscreen(window: int)
+    fn gtk_window_unfullscreen(window: int)
+    fn gtk_window_minimize(window: int)
+    fn gtk_window_maximize(window: int)
+end
+
+;; ── GTK4 — GtkAlertDialog (GTK >= 4.10) ───────────────────────────────────────
+;; Prawdziwy konstruktor (`gtk_alert_dialog_new`) jest wariadyczny (C-owe
+;; `...`); wolamy go z zerem argumentow wariadycznych — czyli dokladnie
+;; jak `printf(msg)` bez %-argumentow — zeby nie polegac na jeszcze
+;; niepewnym (patrz codegen.rs) wsparciu H# dla przekazywania realnych
+;; argumentow wariadycznych przez `extern`. Zeby bylo to bezpieczne mimo
+;; ze `msg` trafia jako C-owy format string, `gtk.h#` najpierw ucieka
+;; kazdy `%` na `%%` (`strings::replace_all`) zanim tu trafi.
+;; `gtk_alert_dialog_show` jest w pelni "fire-and-forget" (nie zwraca
+;; wyboru uzytkownika — to wymagaloby async `GAsyncReadyCallback`, a wiec
+;; C-owego wskaznika funkcji, poza zakresem biblioteki w 100% H#).
+
+extern static [c, "gtk4"] is
+    fn gtk_alert_dialog_new(escaped_format: string) -> int
+    fn gtk_alert_dialog_set_modal(dialog: int, modal: int)
+    fn gtk_alert_dialog_set_detail(dialog: int, detail: string)
+    fn gtk_alert_dialog_show(dialog: int, parent: int)
+end
+
+;; Wszystko ponizej to dalej zwykle `extern static [c, "..."]` — zero C.
+;; Konwencje: wskazniki = `int`, `gboolean` = `int` (0/1), `double` = `f64`,
+;; wyliczenia GTK = `int`.
+
+;; ── GtkWindow — dodatki ───────────────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_window_close(window: int)
+    fn gtk_window_set_titlebar(window: int, titlebar: int)
+    fn gtk_window_get_title(window: int) -> string
+    fn gtk_window_is_active(window: int) -> int
+    fn gtk_window_is_maximized(window: int) -> int
+    fn gtk_window_is_fullscreen(window: int) -> int
+    fn gtk_window_unmaximize(window: int)
+    fn gtk_window_set_transient_for(window: int, parent: int)
+    fn gtk_window_set_hide_on_close(window: int, setting: int)
+    fn gtk_window_set_icon_name(window: int, name: string)
+    fn gtk_window_set_default_widget(window: int, widget: int)
+end
+
+;; ── GtkHeaderBar / GtkActionBar ───────────────────────────────────────────────
+
+extern static [c, "gtk4"] is
+    fn gtk_header_bar_new() -> int
+    fn gtk_header_bar_pack_start(bar: int, child: int)
+    fn gtk_header_bar_pack_end(bar: int, child: int)
+    fn gtk_header_bar_set_title_widget(bar: int, title_widget: int)
+    fn gtk_header_bar_set_show_title_buttons(bar: int, setting: int)
+    fn gtk_action_bar_new() -> int
+    fn gtk_action_bar_pack_start(bar: int, child: int)
+    fn gtk_action_bar_pack_end(bar: int, child: int)
+    fn gtk_action_bar_set_center_widget(bar: int, center_widget: int)
+end
+
+;; GtkFileDialog (GTK >= 4.10): wersje asynchroniczne dostaja callback
+;; GAsyncReadyCallback(source, result, user_data); `*_finish` wolamy pozniej z `App::poll`.
+
+extern static [c, "gtk4"] is
+    fn gtk_file_dialog_new() -> int
+    fn gtk_file_dialog_set_title(dialog: int, title: string)
+    fn gtk_file_dialog_set_accept_label(dialog: int, label: string)
+    fn gtk_file_dialog_set_initial_name(dialog: int, name: string)
+    fn gtk_file_dialog_set_initial_folder(dialog: int, folder: int)
+    fn gtk_file_dialog_save(dialog: int, parent: int, cancellable: int, cb: int, data: int)
+    fn gtk_file_dialog_save_finish(dialog: int, result: int, error: int) -> int
+    fn gtk_file_dialog_open(dialog: int, parent: int, cancellable: int, cb: int, data: int)
+    fn gtk_file_dialog_open_finish(dialog: int, result: int, error: int) -> int
+    fn gtk_file_dialog_select_folder(dialog: int, parent: int, cancellable: int, cb: int, data: int)
+    fn gtk_file_dialog_select_folder_finish(dialog: int, result: int, error: int) -> int
+end
