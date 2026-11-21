@@ -1,7 +1,7 @@
 [package]
 -> name        => gtk
--> version     => 0.1.0
--> description => GTK4 bindings for H# — 100% H#, native FFI to libgtk-4 (extern static [c]), polling-based events
+-> version     => 0.6.0
+-> description => GTK4 + libadwaita bindings for H# — 100% H#, native FFI to libgtk-4 (extern static [c]), polling-based events
 -> authors     => ["Bit Developers"]
 -> license     => MIT
 -> lang        => h#
@@ -31,6 +31,14 @@
 --> pacman => gtk4
 --> apk => gtk4.0-dev
 --> zypper => gtk4-devel
+-> libadwaita
+--> version => >=1.5
+--> pkg-config => libadwaita-1
+--> apt => libadwaita-1-dev
+--> dnf => libadwaita-devel
+--> pacman => libadwaita
+--> apk => libadwaita-dev
+--> zypper => libadwaita-devel
 -> glib
 --> pkg-config => glib-2.0
 --> apt => libglib2.0-dev
